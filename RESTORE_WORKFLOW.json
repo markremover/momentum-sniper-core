@@ -1,0 +1,478 @@
+{
+    "name": "Momentum Sniper V7 (Professional)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "webhook/momentum-trigger",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                220,
+                340
+            ],
+            "webhookId": "momentum-trigger"
+        },
+        {
+            "parameters": {
+                "dataType": "string",
+                "value1": "={{ $json[\"body\"][\"type\"] }}",
+                "rules": {
+                    "rules": [
+                        {
+                            "value2": "PUMP_DETECTED"
+                        },
+                        {
+                            "value2": "TRADE_RESULT",
+                            "output": 1
+                        },
+                        {
+                            "value2": "TRADE_PULSE",
+                            "output": 2
+                        }
+                    ]
+                }
+            },
+            "id": "switch-event",
+            "name": "Switch Event",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                440,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "url": "={{ 'https://cryptopanic.com/api/v1/posts/?auth_token=' + ($env.CRYPTOPANIC_API_KEY || 'MISSING_KEY') + '&currencies=' + $json.body.pair.replace('-USD','') + '&kind=news&filter=important' }}",
+                "options": {}
+            },
+            "id": "fetch-cryptopanic",
+            "name": "Fetch CryptoPanic",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                700,
+                180
+            ]
+        },
+        {
+            "parameters": {
+                "fieldToSplitOut": "results",
+                "options": {}
+            },
+            "id": "split-results",
+            "name": "Item Lists",
+            "type": "n8n-nodes-base.itemLists",
+            "typeVersion": 1,
+            "position": [
+                900,
+                180
+            ]
+        },
+        {
+            "parameters": {
+                "amount": 3
+            },
+            "id": "limit-news",
+            "name": "Limit (Top 3)",
+            "type": "n8n-nodes-base.limit",
+            "typeVersion": 1,
+            "position": [
+                1100,
+                180
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "// Combine CryptoPanic titles\n// CryptoPanic returns: { title: \"...\", domain: \"...\", url: \"...\" }\n\nconst newsText = items.map(i => `Title: ${i.json.title}\\nSource: ${i.json.domain}`).join('\\n---\\n');\n\nif (!newsText) {\n   return [{ json: { news_context: \"No major news found for this ticker.\" } }];\n}\n\nreturn [{ json: { news_context: newsText } }];"
+            },
+            "id": "aggregate-news-cp",
+            "name": "Aggregate News",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                1300,
+                180
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "combine",
+                "combinationMode": "mergeByPosition",
+                "options": {}
+            },
+            "id": "merge-data",
+            "name": "Merge News+Pump",
+            "type": "n8n-nodes-base.merge",
+            "typeVersion": 2,
+            "position": [
+                1500,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "prompt_template",
+                            "value": "🚨 ANALYSIS REQUEST (PROFESSIONAL MODE) 🚨\n\nASSET: {{ $json.body.pair }}\nCHANGE: {{ $json.body.change_percent }}%\nVOLUME: {{ $json.body.volume_24h }}\n\n📰 CRYPTOPANIC INTELLIGENCE (Strictly Filtered):\n{{ $json.news_context }}\n\nTASK:\nIs this movement a FUNDAMENTAL BREAKOUT (Real News) or a FAKE PUMP (Manipulation)?\n\nIf news exists, verify if it justifies the {{ $json.body.change_percent }}% move.\nIf no news is found, ASSUME HIGH RISK (Manipulation).\n\nReply EXACTLY: YES (if good buy) or NO.\nReason: (Short professional explanation based on news/volume)"
+                        }
+                    ]
+                }
+            },
+            "id": "set-prompt-v7",
+            "name": "Set Prompt (Pro)",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                1700,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpQueryAuth",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "contents",
+                            "value": "={{ [{\"parts\": [{\"text\": $json.prompt_template}]}] }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "gemini-catalyst",
+            "name": "Consult Gemini (Catalyst)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1900,
+                340
+            ],
+            "credentials": {
+                "httpQueryAuth": {
+                    "id": "key",
+                    "name": "Gemini API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ $json[\"candidates\"][0][\"content\"][\"parts\"][0][\"text\"] }}",
+                "options": {}
+            },
+            "id": "webhook-response-pump",
+            "name": "Respond (Pump Analysis)",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                2100,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "prompt_template",
+                            "value": "RE-EVALUATION PULSE:\nPair: {{ $json.body.pair }}\nPnL: {{ $json.body.pnl }}%\n\nShould I HOLD or EXIT?\nIf confidence < 60%, say EXIT.\nIf holding strong, say HOLD.\n\nReply JSON: { \"action\": \"HOLD\"/\"EXIT\", \"confidence\": 90 }"
+                        }
+                    ]
+                }
+            },
+            "id": "pulse-config",
+            "name": "Set Config (Pulse)",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                1700,
+                540
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpQueryAuth",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "contents",
+                            "value": "={{ [{\"parts\": [{\"text\": $json.prompt_template}]}] }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "gemini-pulse",
+            "name": "Consult Gemini (Pulse)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1900,
+                540
+            ],
+            "credentials": {
+                "httpQueryAuth": {
+                    "id": "key",
+                    "name": "Gemini API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ $json[\"candidates\"][0][\"content\"][\"parts\"][0][\"text\"] }}",
+                "options": {}
+            },
+            "id": "webhook-response-pulse",
+            "name": "Respond (Pulse)",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                2100,
+                540
+            ]
+        },
+        {
+            "parameters": {
+                "keepOnlySet": true,
+                "values": {
+                    "string": [
+                        {
+                            "name": "pair",
+                            "value": "={{ $json.body.pair }}"
+                        },
+                        {
+                            "name": "result",
+                            "value": "={{ $json.body.result }}"
+                        },
+                        {
+                            "name": "pnl",
+                            "value": "={{ $json.body.pnl_percent }}"
+                        },
+                        {
+                            "name": "max_pnl",
+                            "value": "={{ $json.body.max_pnl_percent }}"
+                        },
+                        {
+                            "name": "date",
+                            "value": "={{ new Date().toISOString() }}"
+                        }
+                    ]
+                }
+            },
+            "id": "format-logging",
+            "name": "Format Data (Log)",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                700,
+                450
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "https://docs.google.com/spreadsheets/d/1PshfiWg7y4pmaOrduqxIXOrrgXy3JrBKiqrcDzbUbiw/edit?gid=0#gid=0",
+                    "mode": "url"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "Sheet1",
+                    "mode": "list",
+                    "cachedResultName": "Sheet1"
+                },
+                "dataMode": "autoMapInputData",
+                "options": {}
+            },
+            "id": "google-sheets",
+            "name": "Log to Sheets",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 3,
+            "position": [
+                900,
+                450
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "google_sheets_account",
+                    "name": "Google Sheets account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Switch Event",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch Event": {
+            "main": [
+                [
+                    {
+                        "node": "Fetch CryptoPanic",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Merge News+Pump",
+                        "type": "main",
+                        "index": 1
+                    }
+                ],
+                [
+                    {
+                        "node": "Format Data (Log)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Set Config (Pulse)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Fetch CryptoPanic": {
+            "main": [
+                [
+                    {
+                        "node": "Item Lists",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Item Lists": {
+            "main": [
+                [
+                    {
+                        "node": "Limit (Top 3)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Limit (Top 3)": {
+            "main": [
+                [
+                    {
+                        "node": "Aggregate News",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Aggregate News": {
+            "main": [
+                [
+                    {
+                        "node": "Merge News+Pump",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Merge News+Pump": {
+            "main": [
+                [
+                    {
+                        "node": "Set Prompt (Pro)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Prompt (Pro)": {
+            "main": [
+                [
+                    {
+                        "node": "Consult Gemini (Catalyst)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Consult Gemini (Catalyst)": {
+            "main": [
+                [
+                    {
+                        "node": "Respond (Pump Analysis)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Config (Pulse)": {
+            "main": [
+                [
+                    {
+                        "node": "Consult Gemini (Pulse)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Consult Gemini (Pulse)": {
+            "main": [
+                [
+                    {
+                        "node": "Respond (Pulse)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format Data (Log)": {
+            "main": [
+                [
+                    {
+                        "node": "Log to Sheets",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

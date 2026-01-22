@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+dist/
+
+# Environment Variables (SECRETS)
+.env
+.env.local
+.env.*
+
+# Sensitive Keys (Added by Security Scan)
+Google Sheet key.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# System
+.DS_Store
+Thumbs.db
+
+# Large/Temp
+n8n_data/
+coverage/

@@ -1,0 +1,4 @@
+node_modules
+dist
+.env
+cdp_api_key.json

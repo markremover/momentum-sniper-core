@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: momentum-brain
+    restart: always
+    ports:
+      - "5678:5678"
+    env_file:
+      - .env
+    environment:
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      # IMPORTANT: Ensure this IP matches your VPS External IP
+      - WEBHOOK_URL=http://34.173.80.38:5678/
+      - GENERIC_TIMEZONE=America/New_York
+      - N8N_SECURE_COOKIE=false
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    volumes:
+      # Bind mount current directory ./n8n_data to container
+      - ./n8n_data:/home/node/.n8n
+
+  scanner:
+    build: .
+    container_name: momentum-scanner
+    restart: always
+    depends_on:
+      - n8n
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    environment:
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook/momentum-trigger-new-v13
