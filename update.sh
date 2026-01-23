@@ -6,7 +6,7 @@ git pull origin main
 
 echo "🏗️ Rebuilding Momentum Scanner Container..."
 # Rebuilds the image and restarts the container in detached mode
-docker-compose up -d --build momentum-scanner
+docker-compose up -d --build scanner
 
 echo "🧹 Cleaning up old images..."
 docker image prune -f
