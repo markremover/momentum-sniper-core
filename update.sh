@@ -13,12 +13,28 @@ docker image prune -f
 
 # Colors
 GREEN='\033[0;32m'
+RED='\033[0;31m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}"
-echo "======================================================="
-echo "   🚀  MOMENTUM SNIPER UPDATED & RESTARTED  🚀"
-echo "======================================================="
-echo -e "${NC}"
-echo -e "${CYAN}Monitor logs with: sudo docker-compose logs -f scanner${NC}"
+echo "⏳ Waiting 10 seconds to verify stability..."
+sleep 10
+
+# Check if scanner is running
+if [ "$(docker inspect -f '{{.State.Running}}' scanner 2>/dev/null)" = "true" ]; then
+    echo -e "${GREEN}"
+    echo "======================================================="
+    echo "   🚀  MOMENTUM SNIPER IS ONLINE & STABLE  🚀"
+    echo "======================================================="
+    echo -e "${NC}"
+    echo -e "${CYAN}Monitor logs with: sudo docker-compose logs -f scanner${NC}"
+else
+    echo -e "${RED}"
+    echo "======================================================="
+    echo "   ⚠️  CRITICAL ERROR: BOT CRASHED ON STARTUP  ⚠️"
+    echo "======================================================="
+    echo "Possible causes: Memory (OOM) or Config Error."
+    echo "Checking logs for you:"
+    echo -e "${NC}"
+    docker logs --tail 20 scanner
+fi
