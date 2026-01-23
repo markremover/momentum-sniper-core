@@ -21,7 +21,7 @@ echo "⏳ Waiting 10 seconds to verify stability..."
 sleep 10
 
 # Check if scanner is running
-if [ "$(docker inspect -f '{{.State.Running}}' scanner 2>/dev/null)" = "true" ]; then
+if [ "$(docker inspect -f '{{.State.Running}}' momentum-scanner 2>/dev/null)" = "true" ]; then
     echo -e "${GREEN}"
     echo "======================================================="
     echo "   🚀  MOMENTUM SNIPER IS ONLINE & STABLE  🚀"
@@ -36,5 +36,5 @@ else
     echo "Possible causes: Memory (OOM) or Config Error."
     echo "Checking logs for you:"
     echo -e "${NC}"
-    docker logs --tail 20 scanner
+    docker logs --tail 20 momentum-scanner
 fi
