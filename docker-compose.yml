@@ -37,3 +37,11 @@ services:
       - "3000:3000"
     environment:
       - N8N_WEBHOOK_URL=http://n8n:5678/webhook/momentum-trigger-new-v13
+    deploy:
+      resources:
+        limits:
+          memory: 800M
+        reservations:
+          memory: 400M
+    mem_swappiness: 60
+
