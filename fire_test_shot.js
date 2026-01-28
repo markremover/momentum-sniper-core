@@ -12,11 +12,8 @@ if (fs.existsSync(envPath)) {
     process.exit(1);
 }
 
-const WEBHOOK_URL = process.env.N8N_WEBHOOK_URL;
-if (!WEBHOOK_URL) {
-    console.error("❌ N8N_WEBHOOK_URL is missing in .env");
-    process.exit(1);
-}
+// FOR EXTERNAL TESTING: Use external IP instead of internal Docker network
+const WEBHOOK_URL = process.env.N8N_WEBHOOK_URL_EXTERNAL || "http://35.223.93.16:5678/webhook/momentum-trigger-new-v13";
 
 console.log(`🎯 TARGET: ${WEBHOOK_URL}`);
 console.log(`🤖 TELEGRAM: Token exists? ${process.env.TELEGRAM_BOT_TOKEN ? 'YES ✅' : 'NO ❌'}`);
