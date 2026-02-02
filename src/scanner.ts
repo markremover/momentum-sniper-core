@@ -2,6 +2,7 @@
 import WebSocket from 'ws';
 import axios from 'axios';
 import { CONFIG } from './config';
+import { TradeHistory } from './tradeHistory';
 
 interface CandleData {
     price: number;
@@ -51,6 +52,7 @@ export class MomentumScanner {
 
     // Memory State
     private products: Map<string, ProductState> = new Map();
+    private tradeHistory: TradeHistory = new TradeHistory();  // V19: Trade logging
     private dailyStats: DailyStats = { date: '', wins: 0, losses: 0, totalPnL: 0 };
     private globalCooldowns: Map<string, number> = new Map(); // GLOBAL BAN LIST 🛑
 
@@ -279,6 +281,20 @@ export class MomentumScanner {
         this.dailyStats.totalPnL += finalPnL;
 
         console.log(`[CLOSED] ${pair} ${reason}. PnL: ${finalPnL.toFixed(2)}%`);
+
+        // V19: Log trade EXIT
+        const state = this.products.get(pair);
+        const rsi = state ? this.calculateRSI(state.history) : 50;
+        this.tradeHistory.append({
+            timestamp: Date.now(),
+            coin: pair,
+            pnl: finalPnL,
+            reason: reason,
+            volume: 0,  // Volume not available at exit
+            news_tier: null,  // Can enhance later
+            rsi: rsi
+        });
+
         this.sendTradeResult(pair, trade, currentPrice, finalPnL, durationMs, note);
     }
 
@@ -521,11 +537,41 @@ export class MomentumScanner {
             const newsTier = decision.news_score || 0; // Expecting user to update prompt
 
             if (decision && decision.action === 'BUY' && conf >= 75) {
+                // V19: Log ENTRY
+                const state = this.products.get(pair);
+                const rsi = state ? this.calculateRSI(state.history) : 50;
+                this.tradeHistory.append({
+                    timestamp: Date.now(),
+                    coin: pair,
+                    pnl: null,  // OPEN position
+                    reason: 'ENTRY',
+                    volume: volume,
+                    news_tier: newsTier > 0 ? (newsTier >= 8 ? 'High' : newsTier >= 5 ? 'Medium' : 'Low') : null,
+                    rsi: rsi,
+                    confidence: conf,
+                    mode: mode
+                });
+
                 await this.sendTelegram(pair, price, change, volume, tp, sl, conf, decision.predicted_optimal_exit || 15, newsTier);
                 return { approved: true, confidence: conf, predictedExit: decision.predicted_optimal_exit || 15, mode: mode, newsTier: newsTier };
             } else {
                 reason = decision?.reason || reason; // Use AI reason if available
                 console.log(`[GATEKEEPER] Rejected ${pair}: ${reason}`);
+
+                // V19: Log BLOCKED signals
+                const state = this.products.get(pair);
+                const rsi = state ? this.calculateRSI(state.history) : 50;
+                this.tradeHistory.append({
+                    timestamp: Date.now(),
+                    coin: pair,
+                    pnl: null,
+                    reason: 'BLOCKED',
+                    volume: volume,
+                    news_tier: null,
+                    rsi: rsi,
+                    confidence: conf
+                });
+
                 await this.sendRejectionAlert(pair, reason, change, signalId);
                 return { approved: false, confidence: 0, predictedExit: 15, mode: 'SCALP', newsTier: 0 };
             }
