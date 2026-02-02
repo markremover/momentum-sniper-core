@@ -1,0 +1,478 @@
+{
+    "name": "Momentum Sniper V19 (SMART ANALYST + HISTORY)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "momentum-trigger-new-v13",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                220,
+                340
+            ],
+            "webhookId": "momentum-trigger-new-v13"
+        },
+        {
+            "parameters": {
+                "dataType": "string",
+                "value1": "={{ $json[\"body\"][\"type\"] }}",
+                "rules": {
+                    "rules": [
+                        {
+                            "value2": "PUMP_DETECTED"
+                        },
+                        {
+                            "value2": "TRADE_RESULT",
+                            "output": 1
+                        },
+                        {
+                            "value2": "TRADE_PULSE",
+                            "output": 2
+                        }
+                    ]
+                }
+            },
+            "id": "switch-event",
+            "name": "Switch Event",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                440,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// V19: Read Trade History for Reflection Learning\nconst fs = require('fs');\nconst historyPath = '/data/trade_history.json';\n\nlet history = [];\ntry {\n  if (fs.existsSync(historyPath)) {\n    const data = fs.readFileSync(historyPath, 'utf8');\n    const allTrades = JSON.parse(data);\n    history = allTrades.slice(-50);  // Last 50 trades\n  }\n} catch (error) {\n  console.error('[Trade History] Error reading file:', error.message);\n}\n\nconst wins = history.filter(t => t.pnl && t.pnl > 0).length;\nconst losses = history.filter(t => t.pnl && t.pnl <= 0).length;\nconst winRate = (wins + losses) > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;\n\nconst historyText = history.length > 0 \n  ? history.map(t => `${t.coin}: ${t.reason}, PnL: ${t.pnl || 'OPEN'}%, Vol: $${(t.volume/1000000).toFixed(1)}M, News: ${t.news_tier || 'NULL'}`).join('\\n')\n  : \"No trade history yet.\";\n\nreturn [{ \n  json: { \n    trade_history: historyText,\n    total_trades: history.length,\n    win_rate: winRate,\n    recent_wins: wins,\n    recent_losses: losses\n  } \n}];"
+            },
+            "id": "read-trade-history",
+            "name": "Read Trade History (V19)",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                660,
+                340
+            ],
+            "continueOnFail": true
+        },
+        {
+            "parameters": {
+                "url": "={{ 'https://news.google.com/rss/search?q=' + $json.body.pair.replace('-USD','') + '+crypto+when:1d&hl=en-US&gl=US&ceid=US:en' }}",
+                "options": {}
+            },
+            "id": "fetch-google-news-rss",
+            "name": "Fetch Google News (RSS)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                900,
+                180
+            ],
+            "continueOnFail": true
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "id": "xml-to-json",
+            "name": "Parse RSS XML",
+            "type": "n8n-nodes-base.xml",
+            "typeVersion": 1,
+            "position": [
+                1100,
+                180
+            ],
+            "continueOnFail": true
+        },
+        {
+            "parameters": {
+                "jsCode": "// Robust News Processing (V12 Fix)\n// Handles: Empty Feeds, Single Items, Multiple Items\n\ntry {\n    const body = $input.all()[0].json;\n    const rss = body.rss;\n\n    if (!rss || !rss.channel || !rss.channel.item) {\n        return [{ json: { news_context: \"No major news found on Google News in last 24h.\" } }];\n    }\n\n    let items = rss.channel.item;\n    if (!Array.isArray(items)) { items = [items]; }\n\n    const topItems = items.slice(0, 5);\n    const newsText = topItems.map(i => {\n        const title = i.title || 'No Title';\n        const date = i.pubDate || 'No Date';\n        return `Title: ${title}\\nDate: ${date}`;\n    }).join('\\n---\\n');\n\n    return [{ json: { news_context: newsText } }];\n\n} catch (error) {\n    return [{ json: { news_context: \"Error processing news feed. Assuming no news.\" } }];\n}"
+            },
+            "id": "process-news-logic",
+            "name": "Process News (Stable)",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                1500,
+                180
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "combine",
+                "combinationMode": "mergeByPosition",
+                "options": {}
+            },
+            "id": "merge-data",
+            "name": "Merge News+Pump+History",
+            "type": "n8n-nodes-base.merge",
+            "typeVersion": 2,
+            "position": [
+                1900,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "prompt_template",
+                            "value": "{\n  \"instruction\": \"ACT AS A CALCULATING CRYPTO WHALE ANALYST WITH MACHINE LEARNING MEMORY. ANALYZE PUMP, NEWS, AND HISTORICAL PERFORMANCE.\",\n  \"context\": \"Asset: {{ $json.body.pair }} | Pump: {{ $json.body.change_percent }}% | Vol: {{ $json.body.volume_24h }}\",\n  \"news_data\": \"{{ $json.news_context.replace(/\\\"/g, \"'\") }}\",\n  \"trade_history_stats\": \"Total Trades: {{ $json.trade_history.total_trades || 0 }} | Win Rate: {{ $json.trade_history.win_rate || 0 }}% | Recent Wins: {{ $json.trade_history.recent_wins || 0 }} | Losses: {{ $json.trade_history.recent_losses || 0 }}\",\n  \"recent_history\": \"{{ ($json.trade_history.trade_history || 'No history').substring(0, 1000) }}\",\n  \"logic_rules\": {\n    \"1_REFLECTION_LEARNING\": \"Review trade_history. If similar high-volume setups (>$2M vol) resulted in WINS despite 'No News', ALLOW this entry. Learn from past successes.\",\n    \"2_SILENT_WHALE_OVERRIDE\": \"If news_context = 'No major news' BUT volume > $2,500,000, this is WHALE ACTIVITY. Force BUY with mode: SCALP.\",\n    \"3_SCAM_FILTER\": \"If news_context contains 'No major news' AND change > 10% AND volume < $1M, Confidence = 0. Reason: Pump without Catalyst.\",\n    \"4_NEWS_TIER\": \"TIER 1 = Binance/Coinbase Listing, Top Partnership (Google/Visa/AWS), Mainnet Launch. TIER 2 = Product Update, Minor listing. TIER 3 = Hype.\",\n    \"5_SCORING\": \"If TIER 1 present -> news_score = 1. Else -> news_score = 0.\",\n    \"6_MODE_SELECTOR\": \"If TIER 1 -> MODE: MOON (Target +40%). Else -> MODE: SCALP (Target +15%).\",\n    \"7_DECISION\": \"BUY if (Volume > $1M AND News >= TIER 3) OR (Volume > $2.5M regardless of news). BLOCK if Volume < $500k.\"\n  },\n  \"output_format\": \"ONLY RAW JSON (NO MARKDOWN): { 'action': 'BUY/BLOCK', 'confidence': 0-100, 'mode': 'SCALP/MOON', 'news_score': 0/1, 'predicted_optimal_exit': 10-20, 'reason': 'concise reason' }\"\n}"
+                        }
+                    ]
+                }
+            },
+            "id": "set-prompt-v19",
+            "name": "Set Prompt (V19 Reflection)",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                2100,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpQueryAuth",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "contents",
+                            "value": "={{ [{\"parts\": [{\"text\": $json.prompt_template}]}] }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "gemini-catalyst",
+            "name": "Consult Gemini (Catalyst)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                2300,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// V19: Parse Gemini Response + Silent Whale Override\nconst signal = $node[\"Webhook\"].json.body;\nconst geminiRaw = $json.candidates[0].content.parts[0].text;\n\n// Remove markdown code fences\nlet cleanResponse = geminiRaw.trim().replace(/```json\\n?/g, '').replace(/```\\n?/g, '');\n\nlet geminiDecision;\ntry {\n  geminiDecision = JSON.parse(cleanResponse);\n} catch (e) {\n  console.error('[V19] JSON Parse Error:', e.message);\n  console.error('[V19] Raw Response:', cleanResponse.substring(0, 200));\n  return [{\n    json: {\n      action: 'BLOCK',\n      reason: 'AI Response Error (Non-JSON)',\n      confidence: 0,\n      mode: 'SCALP',\n      news_score: 0,\n      predicted_optimal_exit: 15\n    }\n  }];\n}\n\n// SILENT WHALE OVERRIDE\nif (signal.volume_24h > 2500000 && \n    geminiDecision.action === 'BLOCK' &&\n    (!geminiDecision.news_score || geminiDecision.news_score === 0)) {\n  \n  console.log(`🐋 [SILENT WHALE OVERRIDE] ${signal.pair} - $${(signal.volume_24h/1000000).toFixed(1)}M volume`);\n  \n  return [{\n    json: {\n      action: 'BUY',\n      reason: '🐋 SILENT WHALE: High volume override (tight SL)',\n      confidence: 85,\n      mode: 'SCALP',\n      news_score: 0,\n      predicted_optimal_exit: 12,\n      whale_override: true\n    }\n  }];\n}\n\n// Pass through original Gemini decision\nreturn [{ json: geminiDecision }];"
+            },
+            "id": "parse-and-whale-check",
+            "name": "Parse + Silent Whale Override (V19)",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                2500,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ $json }}",
+                "options": {}
+            },
+            "id": "webhook-response-pump",
+            "name": "Respond (Pump Analysis)",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                2700,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "prompt_template",
+                            "value": "RE-EVALUATION PULSE (HYBRID):\nPair: {{ $json.body.pair }}\nPnL: {{ $json.body.pnl }}%\n\nShould I HOLD or EXIT?\nIf price is dropping and confidence is low, say EXIT.\nIf price is stable/rising, say HOLD.\n\nReply ONLY JSON:\n{ \"action\": \"HOLD\", \"confidence\": 90 }\nOR\n{ \"action\": \"EXIT\", \"confidence\": 90 }"
+                        }
+                    ]
+                }
+            },
+            "id": "pulse-config",
+            "name": "Set Config (Pulse)",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                1900,
+                540
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpQueryAuth",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "contents",
+                            "value": "={{ [{\"parts\": [{\"text\": $json.prompt_template}]}] }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "gemini-pulse",
+            "name": "Consult Gemini (Pulse)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                2100,
+                540
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.parse($json[\"candidates\"][0][\"content\"][\"parts\"][0][\"text\"].replace(/```json/g, \"\").replace(/```/g, \"\")) }}",
+                "options": {}
+            },
+            "id": "webhook-response-pulse",
+            "name": "Respond (Pulse)",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                2500,
+                540
+            ]
+        },
+        {
+            "parameters": {
+                "keepOnlySet": true,
+                "values": {
+                    "string": [
+                        {
+                            "name": "pair",
+                            "value": "={{ $json.body.pair }}"
+                        },
+                        {
+                            "name": "result",
+                            "value": "={{ $json.body.result }}"
+                        },
+                        {
+                            "name": "pnl",
+                            "value": "={{ $json.body.pnl_percent }}"
+                        }
+                    ]
+                }
+            },
+            "id": "format-logging",
+            "name": "Format Data (Log)",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                900,
+                450
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "https://docs.google.com/spreadsheets/d/1F...",
+                    "mode": "url"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "Sheet1",
+                    "mode": "list",
+                    "cachedResultName": "Sheet1"
+                },
+                "dataMode": "autoMapInputData",
+                "options": {}
+            },
+            "id": "google-sheets",
+            "name": "Log to Sheets",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 3,
+            "position": [
+                1100,
+                450
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Switch Event",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch Event": {
+            "main": [
+                [
+                    {
+                        "node": "Read Trade History (V19)",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Fetch Google News (RSS)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Format Data (Log)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Set Config (Pulse)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Read Trade History (V19)": {
+            "main": [
+                [
+                    {
+                        "node": "Merge News+Pump+History",
+                        "type": "main",
+                        "index": 2
+                    }
+                ]
+            ]
+        },
+        "Fetch Google News (RSS)": {
+            "main": [
+                [
+                    {
+                        "node": "Parse RSS XML",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse RSS XML": {
+            "main": [
+                [
+                    {
+                        "node": "Process News (Stable)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Process News (Stable)": {
+            "main": [
+                [
+                    {
+                        "node": "Merge News+Pump+History",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Merge News+Pump+History": {
+            "main": [
+                [
+                    {
+                        "node": "Set Prompt (V19 Reflection)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Prompt (V19 Reflection)": {
+            "main": [
+                [
+                    {
+                        "node": "Consult Gemini (Catalyst)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Consult Gemini (Catalyst)": {
+            "main": [
+                [
+                    {
+                        "node": "Parse + Silent Whale Override (V19)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse + Silent Whale Override (V19)": {
+            "main": [
+                [
+                    {
+                        "node": "Respond (Pump Analysis)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Config (Pulse)": {
+            "main": [
+                [
+                    {
+                        "node": "Consult Gemini (Pulse)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Consult Gemini (Pulse)": {
+            "main": [
+                [
+                    {
+                        "node": "Respond (Pulse)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format Data (Log)": {
+            "main": [
+                [
+                    {
+                        "node": "Log to Sheets",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
