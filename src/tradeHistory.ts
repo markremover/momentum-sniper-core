@@ -24,6 +24,13 @@ export class TradeHistory {
 
     private ensureFileExists(): void {
         try {
+            // Ensure /data directory exists
+            const dir = path.dirname(this.filePath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+                console.log(`[TradeHistory] Created directory: ${dir}`);
+            }
+
             if (!fs.existsSync(this.filePath)) {
                 fs.writeFileSync(this.filePath, JSON.stringify([], null, 2), 'utf8');
                 console.log('[TradeHistory] Created new trade_history.json');
