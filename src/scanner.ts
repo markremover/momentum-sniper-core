@@ -1,4 +1,5 @@
 
+
 import WebSocket from 'ws';
 import axios from 'axios';
 import { CONFIG } from './config';
@@ -64,7 +65,7 @@ export class MomentumScanner {
     private readonly VOLUME_FLOOR_USD = 500000; // $500k Minimum Volume (Hard Floor) 🛑
 
     constructor() {
-        console.log('[MOMENTUM] Scanner Initialized - V16.3 REAL MONEY LAUNCH');
+        console.log('[MOMENTUM] Scanner Initialized - V19 TRADE HISTORY + REFLECTION LEARNING');
         this.resetDailyStats();
     }
 
