@@ -11,27 +11,32 @@ NC='\033[0m' # No Color
 VERSION="V19.1 (Reflection Learning)"
 
 clear
-echo -e "${BLUE}=================================================${NC}"
-echo -e "${BLUE}       🚀 ANTIGRAVITY COMMAND CENTER 🚀       ${NC}"
-echo -e "${BLUE}          💎 $VERSION 💎          ${NC}"
-echo -e "${BLUE}=================================================${NC}"
+echo -e "${CYAN}=================================================${NC}"
+echo -e "${CYAN}       🚀 ANTIGRAVITY COMMAND CENTER 🚀       ${NC}"
+echo -e "${CYAN}=================================================${NC}"
 echo ""
 
 # 1. CHECK MOMENTUM SNIPER
-echo -e "${YELLOW}[ Checking Momentum Sniper... ]${NC}"
+echo -e "${YELLOW}╔══════════════════════════════════════════════╗${NC}"
+echo -e "${YELLOW}║      🎯 MOMENTUM SNIPER ${GREEN}$VERSION${YELLOW}      ║${NC}"
+echo -e "${YELLOW}╚══════════════════════════════════════════════╝${NC}"
+
 if docker ps | grep -q "momentum-scanner"; then
     echo -e "${GREEN}✅ ACTIVE${NC} (Container: momentum-scanner)"
     echo -e "   Status: $(docker ps --filter "name=momentum-scanner" --format "{{.Status}}")"
     
-    # Smart Health Check (Check for WebSocket connection + Heartbeat)
+    # Smart Health Check
     if docker logs --tail 100 momentum-scanner 2>&1 | grep -qE "WebSocket.*connected|Listening on.*pairs|HEARTBEAT|is moving"; then
          echo -e "   Health: ${GREEN}🟢 ONLINE & WATCHING MARKETS${NC}"
     else
          echo -e "   Health: ${YELLOW}🟡 INITIALIZING (Please wait)...${NC}"
     fi
 
-    echo -e "   ${BLUE}Recent Activity:${NC}" 
-    docker logs --tail 3 momentum-scanner 2>&1 | sed 's/^/   / '
+    echo -e "   ${CYAN}Recent Activity & PnL:${NC}" 
+    # Show last 3 diagnostic lines
+    docker logs --tail 10 momentum-scanner 2>&1 | grep "DIAGNOSTIC" | tail -3 | sed 's/^/   / '
+    # Show last PnL or Heartbeat line for context
+    echo -e "   ${GREEN}💰 PnL Info:${NC} $(docker logs --tail 50 momentum-scanner 2>&1 | grep -E "PnL:|Profit:|LOSS|WIN" | tail -1 | sed 's/.*] //')"
 else
     echo -e "${RED}❌ OFFLINE${NC} (Container: momentum-scanner)"
     echo -e "   ${RED}⚠️  Bot is NOT running - No signals will be sent!${NC}"
@@ -39,7 +44,10 @@ fi
 echo ""
 
 # 2. CHECK FUTURES ORACLE
-echo -e "${YELLOW}[ Checking Futures Oracle... ]${NC}"
+echo -e "${YELLOW}╔══════════════════════════════════════════════╗${NC}"
+echo -e "${YELLOW}║           🔮 FUTURES ORACLE (V21)            ║${NC}"
+echo -e "${YELLOW}╚══════════════════════════════════════════════╝${NC}"
+
 if docker ps | grep -q "futures-oracle"; then
     echo -e "${GREEN}✅ ACTIVE${NC} (Container: futures-oracle)"
     echo -e "   Status: $(docker ps --filter "name=futures-oracle" --format "{{.Status}}")"
