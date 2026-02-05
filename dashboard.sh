@@ -8,9 +8,12 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+VERSION="V19.1 (Reflection Learning)"
+
 clear
 echo -e "${BLUE}=================================================${NC}"
 echo -e "${BLUE}       🚀 ANTIGRAVITY COMMAND CENTER 🚀       ${NC}"
+echo -e "${BLUE}          💎 $VERSION 💎          ${NC}"
 echo -e "${BLUE}=================================================${NC}"
 echo ""
 
@@ -41,15 +44,50 @@ if docker ps | grep -q "futures-oracle"; then
     echo -e "${GREEN}✅ ACTIVE${NC} (Container: futures-oracle)"
     echo -e "   Status: $(docker ps --filter "name=futures-oracle" --format "{{.Status}}")"
     
-    # Smart Health Check (Broader Search)
-    if docker logs --tail 100 futures-oracle 2>&1 | grep -qE "Connected: true|AI Analysis"; then
-         echo -e "   Health: ${GREEN}🟢 SYSTEM ONLINE & WATCHING MARKETS${NC}"
+    # System Health Checks (Detailed)
+    WS_OK=$(docker logs --tail 100 futures-oracle 2>&1 | grep -c "WS DEBUG" || echo "0")
+    N8N_URL=$(docker exec futures-oracle grep "N8N_WEBHOOK_BASE" /app/oracle.ts 2>/dev/null | grep -o "http://[^']*" || echo "unknown")
+    COOLDOWN=$(docker exec futures-oracle grep "COOLDOWN_MS" /app/oracle.ts 2>/dev/null | grep -o "[0-9]* \* [0-9]* \* [0-9]*" || echo "unknown")
+    TREND_OK=$(docker logs --tail 50 futures-oracle 2>&1 | grep "TREND" | grep -c "ALLOWING" || echo "0")
+    BLOCKING=$(docker logs --tail 50 futures-oracle 2>&1 | grep "TREND" | grep -c "BLOCKING" || echo "0")
+    
+    # Display Health Status
+    echo -e "   ${CYAN}System Status:${NC}"
+    
+    # WebSocket
+    if [ "$WS_OK" -gt 0 ]; then
+        echo -e "     🟢 WebSocket: ${GREEN}RECEIVING DATA${NC}"
     else
-         echo -e "   Health: ${YELLOW}🟡 INITIALIZING (Please wait)...${NC}"
+        echo -e "     🔴 WebSocket: ${RED}NO DATA${NC}"
+    fi
+    
+    # N8N Connection
+    if echo "$N8N_URL" | grep -q "172.17.0.1"; then
+        echo -e "     🟢 N8N: ${GREEN}CONNECTED${NC}"
+    else
+        echo -e "     🔴 N8N: ${RED}WRONG URL${NC}"
+    fi
+    
+    # Cooldown
+    if echo "$COOLDOWN" | grep -q "15 \* 60 \* 1000"; then
+        echo -e "     🟢 Cooldown: ${GREEN}15 MINUTES${NC}"
+    elif echo "$COOLDOWN" | grep -q "3 \* 60 \* 60"; then
+        echo -e "     🟡 Cooldown: ${YELLOW}3 HOURS (HIGH)${NC}"
+    else
+        echo -e "     🟢 Cooldown: ${GREEN}OK${NC}"
+    fi
+    
+    # Trend Filter
+    if [ "$BLOCKING" -gt 0 ]; then
+        echo -e "     🔴 Trend Filter: ${RED}BLOCKING${NC}"
+    elif [ "$TREND_OK" -gt 0 ]; then
+        echo -e "     🟢 Trend Filter: ${GREEN}NON-BLOCKING${NC}"
+    else
+        echo -e "     🟢 Trend Filter: ${GREEN}OK${NC}"
     fi
 
-    echo -e "   ${BLUE}Recent Logs:${NC}" 
-    docker logs --tail 3 futures-oracle 2>&1 | sed 's/^/   / '
+    echo -e "   ${BLUE}Recent Activity:${NC}" 
+    docker logs --tail 50 futures-oracle 2>&1 | grep "VELOCITY CHECK" | tail -3 | sed 's/^/   / ' || echo "   (No recent activity)"
 else
     echo -e "${RED}❌ OFFLINE${NC}"
 fi
