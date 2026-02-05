@@ -49,12 +49,13 @@
         },
         {
             "parameters": {
-                "jsCode": "// V19: Read Trade History for Reflection Learning\nconst fs = require('fs');\nconst historyPath = '/data/trade_history.json';\n\nlet history = [];\ntry {\n  if (fs.existsSync(historyPath)) {\n    const data = fs.readFileSync(historyPath, 'utf8');\n    const allTrades = JSON.parse(data);\n    history = allTrades.slice(-50);  // Last 50 trades\n  }\n} catch (error) {\n  console.error('[Trade History] Error reading file:', error.message);\n}\n\nconst wins = history.filter(t => t.pnl && t.pnl > 0).length;\nconst losses = history.filter(t => t.pnl && t.pnl <= 0).length;\nconst winRate = (wins + losses) > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;\n\nconst historyText = history.length > 0 \n  ? history.map(t => `${t.coin}: ${t.reason}, PnL: ${t.pnl || 'OPEN'}%, Vol: $${(t.volume/1000000).toFixed(1)}M, News: ${t.news_tier || 'NULL'}`).join('\\n')\n  : \"No trade history yet.\";\n\nreturn [{ \n  json: { \n    trade_history: historyText,\n    total_trades: history.length,\n    win_rate: winRate,\n    recent_wins: wins,\n    recent_losses: losses\n  } \n}];"
+                "url": "http://momentum-scanner:3000/trade-history",
+                "options": {}
             },
             "id": "read-trade-history",
             "name": "Read Trade History (V19)",
-            "type": "n8n-nodes-base.code",
-            "typeVersion": 1,
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
             "position": [
                 660,
                 340
