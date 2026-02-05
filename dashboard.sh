@@ -35,8 +35,22 @@ if docker ps | grep -q "momentum-scanner"; then
     echo -e "   ${CYAN}Recent Activity & PnL:${NC}" 
     # Show last 3 diagnostic lines
     docker logs --tail 10 momentum-scanner 2>&1 | grep "DIAGNOSTIC" | tail -3 | sed 's/^/   / '
-    # Show last PnL or Heartbeat line for context
-    echo -e "   ${GREEN}💰 PnL Info:${NC} $(docker logs --tail 50 momentum-scanner 2>&1 | grep -E "PnL:|Profit:|LOSS|WIN" | tail -1 | sed 's/.*] //')"
+    
+    # 💰 SMART PnL DISPLAY (Color Coded)
+    PNL_LINE=$(docker logs --tail 50 momentum-scanner 2>&1 | grep -E "PnL:|Profit:|LOSS|WIN" | tail -1)
+    
+    if [ -n "$PNL_LINE" ]; then
+        # Check if PnL is negative (contains "-")
+        if echo "$PNL_LINE" | grep -q "\-"; then
+             # Negative -> RED 🔴
+             echo -e "   ${GREEN}💰 PnL Info:${NC} ${RED}$PNL_LINE${NC}"
+        else
+             # Positive -> GREEN 🟢
+             echo -e "   ${GREEN}💰 PnL Info:${NC} ${GREEN}$PNL_LINE${NC}"
+        fi
+    else
+        echo -e "   ${GREEN}💰 PnL Info:${NC} ${YELLOW}Waiting for trade data...${NC}"
+    fi
 else
     echo -e "${RED}❌ OFFLINE${NC} (Container: momentum-scanner)"
     echo -e "   ${RED}⚠️  Bot is NOT running - No signals will be sent!${NC}"
