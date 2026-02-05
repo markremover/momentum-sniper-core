@@ -372,7 +372,7 @@
             "main": [
                 [
                     {
-                        "node": "Set Prompt (V19 Reflection)",
+                        "node": "Set Prompt (V20 Multi-Source)",
                         "type": "main",
                         "index": 0
                     }
