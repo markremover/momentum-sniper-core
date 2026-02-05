@@ -255,61 +255,6 @@
                 2500,
                 540
             ]
-        },
-        {
-            "parameters": {
-                "keepOnlySet": true,
-                "values": {
-                    "string": [
-                        {
-                            "name": "pair",
-                            "value": "={{ $json.body.pair }}"
-                        },
-                        {
-                            "name": "result",
-                            "value": "={{ $json.body.result }}"
-                        },
-                        {
-                            "name": "pnl",
-                            "value": "={{ $json.body.pnl_percent }}"
-                        }
-                    ]
-                }
-            },
-            "id": "format-logging",
-            "name": "Format Data (Log)",
-            "type": "n8n-nodes-base.set",
-            "typeVersion": 1,
-            "position": [
-                900,
-                450
-            ]
-        },
-        {
-            "parameters": {
-                "operation": "append",
-                "documentId": {
-                    "__rl": true,
-                    "value": "https://docs.google.com/spreadsheets/d/1F...",
-                    "mode": "url"
-                },
-                "sheetName": {
-                    "__rl": true,
-                    "value": "Sheet1",
-                    "mode": "list",
-                    "cachedResultName": "Sheet1"
-                },
-                "dataMode": "autoMapInputData",
-                "options": {}
-            },
-            "id": "google-sheets",
-            "name": "Log to Sheets",
-            "type": "n8n-nodes-base.googleSheets",
-            "typeVersion": 3,
-            "position": [
-                1100,
-                450
-            ]
         }
     ],
     "connections": {
@@ -338,13 +283,7 @@
                         "index": 0
                     }
                 ],
-                [
-                    {
-                        "node": "Format Data (Log)",
-                        "type": "main",
-                        "index": 0
-                    }
-                ],
+                [],
                 [
                     {
                         "node": "Set Config (Pulse)",
@@ -458,17 +397,6 @@
                 [
                     {
                         "node": "Respond (Pulse)",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Format Data (Log)": {
-            "main": [
-                [
-                    {
-                        "node": "Log to Sheets",
                         "type": "main",
                         "index": 0
                     }
