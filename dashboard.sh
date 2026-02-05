@@ -8,7 +8,7 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-VERSION="V19.1 (Reflection Learning)"
+VERSION="V20.0 (Multi-Source News)"
 
 clear
 echo -e "${CYAN}=================================================${NC}"
