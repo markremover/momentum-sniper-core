@@ -379,17 +379,6 @@
                 ]
             ]
         },
-        "Set Prompt (V19 Reflection)": {
-            "main": [
-                [
-                    {
-                        "node": "Consult Gemini (Catalyst)",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
         "Consult Gemini (Catalyst)": {
             "main": [
                 [
@@ -505,6 +494,17 @@
                 [
                     {
                         "node": "Merge News+Pump+History",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Prompt (V20 Multi-Source)": {
+            "main": [
+                [
+                    {
+                        "node": "Consult Gemini (Catalyst)",
                         "type": "main",
                         "index": 0
                     }
