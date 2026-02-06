@@ -11,7 +11,7 @@ echo ""
 echo -e "${YELLOW}=================================================${NC}"
 echo -e "         ${GREEN}MOMENTUM SNIPER ${YELLOW}V20.1${NC}"
 echo -e "${YELLOW}=================================================${NC}"
-echo -e "   ${BLUE}Server Time:${NC} $(date '+%Y-%m-%d %H:%M:%S')"
+echo -e "   ${BLUE}Pacific Time:${NC} $(TZ='America/Los_Angeles' date '+%Y-%m-%d %I:%M:%S %p')"
 echo ""
 
 # 1. SCANNER STATUS
