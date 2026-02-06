@@ -16,14 +16,6 @@ if docker ps | grep -q "momentum-scanner"; then
     STATUS=$(docker ps --filter "name=momentum-scanner" --format "{{.Status}}")
     echo -e "   ${GREEN}● ACTIVE${NC}  $STATUS"
     
-    # RECOVERED STATS 
-    # (Assuming we can grep 'Pairs:' from logs if it exists, or just show Heartbeat)
-    # The user asked for "Pairs" specifically. 
-    # If the bot logs "Tracking X pairs", we can show it.
-    PAIRS_COUNT=$(docker logs --tail 200 momentum-scanner 2>&1 | grep "Tracking" | tail -1 | grep -o "[0-9]* pairs" || echo "Checking...")
-    
-    echo -e "   ${BLUE}pairs:${NC} $PAIRS_COUNT"
-
     # P&L
     PNL_LINE=$(docker logs --tail 50 momentum-scanner 2>&1 | grep "Day PnL:" | tail -1)
     if [ -n "$PNL_LINE" ]; then
