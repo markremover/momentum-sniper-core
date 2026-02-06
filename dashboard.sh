@@ -11,7 +11,8 @@ echo ""
 echo -e "${YELLOW}=================================================${NC}"
 echo -e "         ${GREEN}MOMENTUM SNIPER ${YELLOW}V20.1${NC}"
 echo -e "${YELLOW}=================================================${NC}"
-echo -e "   ${BLUE}Pacific Time:${NC} $(TZ='America/Los_Angeles' date '+%Y-%m-%d %I:%M:%S %p')"
+PACIFIC_TIME=$(TZ='America/Los_Angeles' date '+%Y-%m-%d %I:%M:%S %p' 2>/dev/null || date '+%Y-%m-%d %H:%M:%S')
+echo -e "   ${BLUE}Pacific Time:${NC} $PACIFIC_TIME"
 echo ""
 
 # 1. SCANNER STATUS
@@ -75,6 +76,10 @@ if docker ps | grep -q "futures-oracle"; then
     else
         echo -e "   ${RED}✗ N8N Connection Error${NC}"
     fi
+    
+    # Recent Activity Logs
+    echo -e "   ${BLUE}Activity Logs:${NC}"
+    docker logs --tail 5 futures-oracle 2>&1 | sed 's/^/   /'
 else
     echo -e "   ${RED}● ORACLE OFFLINE${NC}"
 fi
