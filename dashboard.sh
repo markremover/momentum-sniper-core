@@ -11,12 +11,15 @@ echo ""
 echo -e "${YELLOW}=================================================${NC}"
 echo -e "         ${GREEN}MOMENTUM SNIPER ${YELLOW}V20.1${NC}"
 echo -e "${YELLOW}=================================================${NC}"
+echo -e "   ${BLUE}Server Time:${NC} $(date '+%Y-%m-%d %H:%M:%S')"
+echo ""
 
+# 1. SCANNER STATUS
 if docker ps | grep -q "momentum-scanner"; then
     STATUS=$(docker ps --filter "name=momentum-scanner" --format "{{.Status}}")
-    echo -e "   ${GREEN}● ACTIVE${NC}  $STATUS"
+    echo -e "   ${GREEN}● BOT ACTIVE${NC}   $STATUS"
     
-    # P&L
+    # P&L Check
     PNL_LINE=$(docker logs --tail 50 momentum-scanner 2>&1 | grep "Day PnL:" | tail -1)
     if [ -n "$PNL_LINE" ]; then
         if echo "$PNL_LINE" | grep -q "\-"; then
@@ -28,34 +31,34 @@ if docker ps | grep -q "momentum-scanner"; then
          echo -e "   ${YELLOW}⏳ P&L: Waiting for data...${NC}"
     fi
 
-    echo -e "   ${BLUE}Logs:${NC}"
+    echo -e "   ${BLUE}Logs (Heartbeat):${NC}"
     docker logs --tail 3 momentum-scanner 2>&1 | grep -v "Day PnL" | sed 's/^/   / '
 else
-    echo -e "   ${RED}● OFFLINE${NC}"
+    echo -e "   ${RED}● BOT OFFLINE${NC}"
 fi
 echo ""
 
-# FUTURES ORACLE
-echo -e "${YELLOW}=================================================${NC}"
-echo -e "         ${YELLOW}FUTURES ORACLE${NC}"
-echo -e "${YELLOW}=================================================${NC}"
-
+# 2. FUTURES ORACLE
 if docker ps | grep -q "futures-oracle"; then
     STATUS=$(docker ps --filter "name=futures-oracle" --format "{{.Status}}")
-    echo -e "   ${GREEN}● ACTIVE${NC}  $STATUS"
+    echo -e "   ${GREEN}● ORACLE ACTIVE${NC} $STATUS"
     
-    # Simple Heartbeat Check
     WS_OK=$(docker logs --tail 100 futures-oracle 2>&1 | grep -c "WS DEBUG")
     if [ "$WS_OK" -gt 0 ]; then
          echo -e "   ${GREEN}✓ WebSocket Online${NC}"
     else
          echo -e "   ${YELLOW}⚠ WebSocket Connecting...${NC}"
     fi
-
-    echo -e "   ${BLUE}Activity:${NC}"
-    docker logs --tail 50 futures-oracle 2>&1 | grep "VELOCITY CHECK" | tail -3 | sed 's/^/   / ' || echo "   (No activity)"
 else
-    echo -e "   ${RED}● OFFLINE${NC}"
+    echo -e "   ${RED}● ORACLE OFFLINE${NC}"
+fi
+echo ""
+
+# 3. N8N CONNECTION (BRAIN)
+if docker ps | grep -q "momentum-brain"; then
+    echo -e "   ${GREEN}● N8N BRAIN${NC}     Active (Ready for Signals)"
+else
+    echo -e "   ${RED}● N8N BRAIN${NC}     OFFLINE (Check Docker)"
 fi
 
 echo ""
