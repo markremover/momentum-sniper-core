@@ -23,3 +23,8 @@ Thumbs.db
 # Large/Temp
 n8n_data/
 coverage/
+
+# Test Scripts (may contain API keys)
+test_gemini_api.js
+test_*.js
+
