@@ -77,13 +77,16 @@ if docker ps | grep -q "futures-oracle"; then
         echo -e "   ${RED}✗ N8N Connection Error${NC}"
     fi
     
-    # Recent Activity Logs (Filter out WS DEBUG)
+    # Recent Activity Logs (Clean Format)
     echo -e "   ${BLUE}Activity Logs:${NC}"
-    ACTIVITY=$(docker logs --tail 50 futures-oracle 2>&1 | grep -E "VELOCITY CHECK|TREND|ALERT|BLOCKED|COOLDOWN|Oracle Port" | tail -5)
+    ACTIVITY=$(docker logs --tail 50 futures-oracle 2>&1 | \
+        grep -E "VELOCITY CHECK|TREND|ALERT|BLOCKED|COOLDOWN" | \
+        sed 's/min remaining/min/g' | \
+        tail -5)
     if [ -n "$ACTIVITY" ]; then
         echo "$ACTIVITY" | sed 's/^/   /'
     else
-        echo -e "   ${YELLOW}(No activity yet - Oracle watching markets)${NC}"
+        echo -e "   ${YELLOW}(Watching: ETH, SOL, XRP, SUI, DOGE - 5min window, 0.8-1%+ moves)${NC}"
     fi
 else
     echo -e "   ${RED}● ORACLE OFFLINE${NC}"
