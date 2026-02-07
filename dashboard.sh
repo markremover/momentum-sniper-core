@@ -32,7 +32,7 @@ if docker ps | grep -q "momentum-scanner"; then
         PNL_VALUE=$(echo "$PNL_LINE" | grep -oP 'Day PnL: \K[+-]?\d+\.\d+')
         if [ -n "$PNL_VALUE" ]; then
             # Color PnL
-            if (( $(echo "$PNL_VALUE >= 0" | bc -l) )); then
+            if (( $(echo "$PNL_VALUE >= 0" | bc -l 2>/dev/null || echo 1) )); then
                 PNL_COLOR="${BRIGHT_GREEN}"
             else
                 PNL_COLOR="${RED}"
@@ -41,9 +41,10 @@ if docker ps | grep -q "momentum-scanner"; then
         fi
     fi
     
-    # Get recent trading activity - show different pairs
+    # Get recent trading activity - UNIQUE PAIRS ONLY
     echo ""
-    docker logs --tail 100 momentum-scanner 2>&1 | grep "DIAGNOSTIC" | tail -10 | while read line; do
+    # Process logs: Reverse order, find unique pairs, take top 5
+    docker logs --tail 200 momentum-scanner 2>&1 | grep "DIAGNOSTIC" | tail -30 | tac | awk '!seen[$2]++' | head -5 | while read line; do
         if [[ $line =~ \[DIAGNOSTIC\]\ ([A-Z]+-USD)\ is\ moving!\ \+([0-9.]+)%\ \|\ Vol:\ ([0-9.]+)M ]]; then
             PAIR="${BASH_REMATCH[1]}"
             CHANGE="${BASH_REMATCH[2]}"
@@ -78,31 +79,36 @@ if docker ps | grep -q "futures-oracle"; then
     
     echo ""
     for PAIR in "${PAIRS[@]}"; do
-        # Try to find this pair in logs
+        # Try to find this pair in logs - Get LAST occurrence
         PAIR_LOG=$(docker logs --tail 200 futures-oracle 2>&1 | grep -i "$PAIR" | tail -1)
         
         if [ -n "$PAIR_LOG" ]; then
-            # Try to extract percentage change
+            # Extract formatted line if it already exists in logs, or parse logic
+            # Assuming log format: ... ETH-USD ...
+            
+            # Simple simulation of values if exact log parsing fails or to style it
             if [[ $PAIR_LOG =~ ([+-]?[0-9]+\.[0-9]+)% ]]; then
                 CHANGE="${BASH_REMATCH[1]}"
                 
                 # Determine direction and color
                 if [[ $CHANGE == +* ]] || [[ $CHANGE =~ ^[0-9] ]]; then
                     DIR="LONG"
-                    CIRCLE="${BRIGHT_GREEN}●${NC}"
+                    # GREEN CIRCLE for LONG
+                    STATUS="${BRIGHT_GREEN}●${NC}Normal"
                 else
                     DIR="SHORT"
-                    CIRCLE="${RED}●${NC}"
+                    # ROUND SHORT (Use Red Circle?)
+                    STATUS="${RED}●${NC}Normal"
                 fi
                 
-                echo -e "  ${PAIR}     | ${CHANGE}% | ${DIR} | ${CIRCLE}${BRIGHT_GREEN}Normal${NC}"
+                echo -e "  ${PAIR}     | ${CHANGE}% | ${DIR} | ${STATUS}"
             else
-                # No percentage found, show default
-                echo -e "  ${PAIR}     | +0.00% | LONG | ${BRIGHT_GREEN}●${NC}${BRIGHT_GREEN}Normal${NC}"
+                # Default if no percentage found but pair exists
+                 echo -e "  ${PAIR}     | +0.00% | LONG | ${BRIGHT_GREEN}●${NC}Normal"
             fi
         else
-            # No log found, show default
-            echo -e "  ${PAIR}     | +0.00% | LONG | ${BRIGHT_GREEN}●${NC}${BRIGHT_GREEN}Normal${NC}"
+            # Default placeholder if no recent log text
+            echo -e "  ${PAIR}     | +0.00% | LONG | ${BRIGHT_GREEN}●${NC}Normal"
         fi
     done
     
@@ -114,7 +120,11 @@ if docker ps | grep -q "futures-oracle"; then
     else
         echo -e "${YELLOW}● N8N CHAIN${NC}    Initializing..."
     fi
-    
+     # WebSocket Status
+    if docker logs --tail 50 futures-oracle 2>&1 | grep -q "WebSocket: Connecting"; then
+        echo -e "${YELLOW}⚠ WebSocket: Connecting...${NC}"
+    fi
+
 else
     echo -e "${RED}❌ OFFLINE${NC}"
 fi
