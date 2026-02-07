@@ -26,7 +26,8 @@ echo ""
 # 1. CHECK MOMENTUM SNIPER (SCANNER)
 if docker ps | grep -q "momentum-scanner"; then
     UPTIME=$(docker ps --filter "name=momentum-scanner" --format "{{.Status}}" | grep -oP 'Up \K[^(]+' | sed 's/ *$//')
-    echo -e "${BRIGHT_GREEN}● HOT ACTIVE${NC}    Up ${UPTIME}"
+    # ADDED TIME WINDOW DISPLAY (10m)
+    echo -e "${BRIGHT_GREEN}● HOT ACTIVE${NC}    Up ${UPTIME}  |  ${CYAN}Time Window: 10m${NC}"
     
     # P&L Check
     PNL_LINE=$(docker logs --tail 100 momentum-scanner 2>&1 | grep "Day PnL:" | tail -1)
@@ -45,15 +46,17 @@ if docker ps | grep -q "momentum-scanner"; then
         fi
     fi
     
-    # Get recent trading activity - UNIQUE PAIRS ONLY
+    # LIVE LOGS (TOP 3 UNIQUE MOVEMENTS)
     echo ""
-    # Process logs: Reverse order, find unique pairs, take top 5
-    docker logs --tail 200 momentum-scanner 2>&1 | grep "DIAGNOSTIC" | tail -30 | tac | awk '!seen[$2]++' | head -5 | while read line; do
+    echo -e "${YELLOW}--- LIVE SCALP TARGETS (Top 3) ---${NC}"
+    # Logic: Get last 400 lines -> Grep DIAGNOSTIC -> Tail 100 -> Reverse -> Unique by Pair ($2) -> Head 3
+    docker logs --tail 400 momentum-scanner 2>&1 | grep "DIAGNOSTIC" | tail -100 | tac | awk '!seen[$2]++' | head -3 | while read line; do
         if [[ $line =~ \[DIAGNOSTIC\]\ ([A-Z]+-USD)\ is\ moving!\ \+([0-9.]+)%\ \|\ Vol:\ ([0-9.]+)M ]]; then
             PAIR="${BASH_REMATCH[1]}"
             CHANGE="${BASH_REMATCH[2]}"
             VOL="${BASH_REMATCH[3]}"
-            echo -e "${CYAN}(DIAGNOSTIC)${NC} ${PAIR} is moving! +${CHANGE}% ${BRIGHT_GREEN}✅${NC} | Vol: ${VOL}M"
+            # FORCE GREEN ONLY
+            echo -e "${CYAN}🚀${NC} ${PAIR} is moving! ${BRIGHT_GREEN}+${CHANGE}%${NC} | Vol: ${VOL}M"
         fi
     done
 else
@@ -127,6 +130,3 @@ fi
 
 echo ""
 echo -e "${YELLOW}=================================================${NC}"
-echo -e "${BOLD}LIVE SURVEILLANCE LOGS (Momentum Sniper):${NC}"
-echo -e "${YELLOW}=================================================${NC}"
-docker logs -f --tail 50 momentum-scanner
