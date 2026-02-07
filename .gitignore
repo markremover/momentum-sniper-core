@@ -9,6 +9,7 @@ dist/
 
 # Sensitive Keys (Added by Security Scan)
 Google Sheet key.json
+Google Sheet key.json.json
 *.zip
 
 # Logs

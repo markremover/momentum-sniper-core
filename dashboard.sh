@@ -30,7 +30,7 @@ if docker ps | grep -q "futures-oracle"; then
     
     # Smart Health Check (Broader Search)
     if docker logs --tail 100 futures-oracle | grep -qE "Connected: true|AI Analysis|ORACLE PULSE"; then
-         echo -e "   Health: ${GREEN}🟢 SYSTEM ONLINE & WATCHING MARKETS${NC}"
+         echo -e "         ${GREEN}MOMENTUM SNIPER ${YELLOW}V20.2${NC}"
     else
          echo -e "   Health: ${YELLOW}🟡 INITIALIZING (Please wait)...${NC}"
     fi
