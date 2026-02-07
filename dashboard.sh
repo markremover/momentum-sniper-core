@@ -67,6 +67,10 @@ if curl -s --max-time 2 http://localhost:3001 > /dev/null 2>&1; then
     
     # N8N Check (always true for this setup)
     echo -e "   ${GREEN}✓ N8N Health: Active${NC}"
+
+    echo -e "   ${BLUE}Activity Logs:${NC}"
+    # Show last 5 lines from Oracle, filtering for trade/price info if possible, or just raw
+    docker logs --tail 5 futures-oracle 2>&1 | sed 's/^/   / '
     
 else
     echo -e "   ${RED}● ORACLE OFFLINE${NC}"

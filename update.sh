@@ -5,6 +5,8 @@ echo "⬇️ Pulling latest code from GitHub..."
 git pull origin main
 
 echo "🏗️ Rebuilding Momentum Scanner Container..."
+docker-compose stop scanner || true
+docker-compose rm -f scanner || true
 # Rebuilds the image and restarts the container in detached mode
 docker-compose up -d --build scanner
 
