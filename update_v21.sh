@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# MOMENTUM SNIPER V21 UPDATE SCRIPT
+# MOMENTUM SNIPER V21 UPDATE SCRIPT (FIX)
 # This script updates the bot code and prepares N8N for the V21 News Workflow.
 
 echo "==================================================="
-echo "   🚀 MOMENTUM SNIPER V21 UPDATE MANAGER 🚀"
+echo "   🚀 MOMENTUM SNIPER V21 UPDATE MANAGER (FIX) 🚀"
 echo "==================================================="
 echo ""
 
@@ -43,6 +43,6 @@ docker-compose down
 docker-compose up -d --build
 
 echo ""
-echo "✅ UPDATE COMPLETE! V21 is now live."
+echo "✅ UPDATE COMPLETE! V21 (Parallel) is now live."
 echo "   Monitor logs: docker logs -f momentum-scanner"
 echo "==================================================="

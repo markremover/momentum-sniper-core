@@ -90,7 +90,7 @@ export class MomentumScanner {
 
     private connect() {
         const url = CONFIG.COINBASE.WS_URL;
-        const VERSION = 'V21.0 (GREEN DIAGNOSTICS)';
+        const VERSION = 'V21 (PARALLEL SYNC)';
         console.log(`[CONNECT] Connecting to ${url}...`);
         this.ws = new WebSocket(url);
 
@@ -543,7 +543,7 @@ export class MomentumScanner {
             // 2. LOGIC CHECK
             const conf = decision.confidence || 0;
             const mode = decision.mode || 'SCALP';
-            const newsTier = decision.news_score || 0;
+            const newsTier = decision.news_score || decision.tier || 0;
             const newsSources = decision.news_sources || "Unknown";
             const isWhaleOverride = decision.whale_override === true || (decision.reason && decision.reason.includes('SILENT WHALE'));
 
