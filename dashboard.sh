@@ -70,7 +70,7 @@ if [ -z "$ORACLE_ID" ]; then
     ORACLE_ID="futures-oracle"
 fi
 
-echo -e "${YELLOW}${BOLD}FUTURES ORACLE ${ORACLE_ID}${NC}"
+echo -e "${YELLOW}${BOLD}FUTURES ORACLE V23.0${NC}"
 echo ""
 
 if docker ps | grep -q "futures-oracle"; then
