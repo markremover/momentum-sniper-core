@@ -18,11 +18,11 @@ echo ""
 # 2. Update Configuration
 echo "[2/3] Updating build version..."
 # Ensure package.json matches
-if grep -q "21.0.0" package.json; then
-    echo "✅ Version 21.0.0 detected."
+if grep -q "21.1.0" package.json; then
+    echo "✅ Version 21.1.0 detected."
 else
     echo "⚠️  Version mismatch? Attempting to fix..."
-    sed -i 's/"version": "20.2.0"/"version": "21.0.0"/' package.json
+    sed -i 's/"version": "21.0.0"/"version": "21.1.0"/' package.json
 fi
 echo ""
 
