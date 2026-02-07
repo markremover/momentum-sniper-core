@@ -444,14 +444,21 @@ export class MomentumScanner {
 
                 // Await Gatekeeper Decision
                 // Await Gatekeeper Decision
-                const { approved, confidence, predictedExit, mode, newsTier } = await this.triggerAlert(product_id, currentPrice, percentChange, currentVolume, tp, sl, signalId);
+                // Await Gatekeeper Decision
+                const { approved, confidence, predictedExit, mode, newsTier, slOverride } = await this.triggerAlert(product_id, currentPrice, percentChange, currentVolume, tp, sl, signalId);
+
+                // Apply Override if exists
+                if (slOverride) {
+                    // console.log(`[SL UPDATE] Overriding SL to ${slOverride}`);
+                }
+                const runSl = slOverride || sl;
 
                 if (approved) {
                     state.activeTrade = {
                         id: signalId,
                         entryPrice: currentPrice,
                         tpPrice: tp,
-                        slPrice: sl,
+                        slPrice: runSl,
                         startTime: now,
                         maxPrice: currentPrice,
                         alert10Sent: false,
@@ -499,7 +506,7 @@ export class MomentumScanner {
         }
     }
 
-    private async triggerAlert(pair: string, price: number, change: number, volume: number, tp: number, sl: number, signalId: string): Promise<{ approved: boolean, confidence: number, predictedExit: number, mode: 'SCALP' | 'MOON', newsTier: number }> {
+    private async triggerAlert(pair: string, price: number, change: number, volume: number, tp: number, sl: number, signalId: string): Promise<{ approved: boolean, confidence: number, predictedExit: number, mode: 'SCALP' | 'MOON', newsTier: number, slOverride?: number, whaleOverride?: boolean, newsSources?: string }> {
         try {
             const response = await axios.post(CONFIG.N8N.WEBHOOK_URL, {
                 type: 'PUMP_DETECTED',
@@ -535,9 +542,19 @@ export class MomentumScanner {
             // 2. LOGIC CHECK
             const conf = decision.confidence || 0;
             const mode = decision.mode || 'SCALP';
-            const newsTier = decision.news_score || 0; // Expecting user to update prompt
+            const newsTier = decision.news_score || 0;
+            const newsSources = decision.news_sources || "Unknown";
+            const isWhaleOverride = decision.whale_override === true || (decision.reason && decision.reason.includes('SILENT WHALE'));
 
-            if (decision && decision.action === 'BUY' && conf >= 75) {
+            // [V20.1] SILENT WHALE SL OVERRIDE 🐋
+            let finalSL = sl;
+            if (isWhaleOverride) {
+                // Force -3% SL for Whale Plays (Safety)
+                finalSL = price * 0.97;
+                console.log(`[WHALE] ${pair} Silent Whale Detected! Tightening SL to -3% (${finalSL.toFixed(4)})`);
+            }
+
+            if ((decision && decision.action === 'BUY' && conf >= 75) || isWhaleOverride) {
                 // V19: Log ENTRY
                 const state = this.products.get(pair);
                 const rsi = state ? this.calculateRSI(state.history) : 50;
@@ -545,7 +562,7 @@ export class MomentumScanner {
                     timestamp: Date.now(),
                     coin: pair,
                     pnl: null,  // OPEN position
-                    reason: 'ENTRY',
+                    reason: isWhaleOverride ? 'ENTRY_WHALE' : 'ENTRY',
                     volume: volume,
                     news_tier: newsTier > 0 ? (newsTier >= 8 ? 'High' : newsTier >= 5 ? 'Medium' : 'Low') : null,
                     rsi: rsi,
@@ -553,8 +570,8 @@ export class MomentumScanner {
                     mode: mode
                 });
 
-                await this.sendTelegram(pair, price, change, volume, tp, sl, conf, decision.predicted_optimal_exit || 15, newsTier);
-                return { approved: true, confidence: conf, predictedExit: decision.predicted_optimal_exit || 15, mode: mode, newsTier: newsTier };
+                await this.sendTelegram(pair, price, change, volume, tp, finalSL, conf, decision.predicted_optimal_exit || 15, newsTier, newsSources);
+                return { approved: true, confidence: conf, predictedExit: decision.predicted_optimal_exit || 15, mode: mode, newsTier: newsTier, slOverride: finalSL, whaleOverride: isWhaleOverride, newsSources: newsSources };
             } else {
                 reason = decision?.reason || reason; // Use AI reason if available
                 console.log(`[GATEKEEPER] Rejected ${pair}: ${reason}`);
@@ -601,7 +618,7 @@ export class MomentumScanner {
         await this.postTelegram(token, chatId, message);
     }
 
-    private async sendTelegram(pair: string, price: number, change: number, volume: number, tp: number, sl: number, confidence: number, predictedExit: number, newsTier: number) {
+    private async sendTelegram(pair: string, price: number, change: number, volume: number, tp: number, sl: number, confidence: number, predictedExit: number, newsTier: number, sources: string) {
         const token = process.env.TELEGRAM_BOT_TOKEN;
         const chatId = process.env.TELEGRAM_CHAT_ID;
         if (!token || !chatId) return;
@@ -627,7 +644,7 @@ ${sizeWarning}
 🛑 <b>SL:</b> ${sl.toFixed(5)} (-7%)
 
     // 🧠 Confidence: ${confidence}% | 🔮 Predicted Top: +${predictedExit}%
-    // 📰 News Tier: ${newsTier}/10
+    // 📰 News: ${sources} (Tier ${newsTier})
     <i>Smart Brain Active 🧠</i>
         `;
         await this.postTelegram(token, chatId, message);

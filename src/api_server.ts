@@ -17,41 +17,26 @@ export class ApiServer {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ status: 'started', message: 'Analysis started. Check Telegram in ~3 minutes.' }));
             } else if (req.method === 'GET' && req.url === '/trade-history') {
-                // V19: Trade History API for N8N
-                const fs = require('fs');
-                const historyPath = '/data/trade_history.json';
+                // V19: Trade History API for N8N (Refactored to use TradeHistory class)
+                const { TradeHistory } = require('./tradeHistory');
+                const tradeHistory = new TradeHistory();
 
                 try {
-                    if (fs.existsSync(historyPath)) {
-                        const data = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
-                        const history = data.slice(-50);
+                    const history = tradeHistory.getLastN(50);
+                    const { wins, losses, winRate } = tradeHistory.getWinRate();
 
-                        const wins = history.filter((t: any) => t.pnl && t.pnl > 0).length;
-                        const losses = history.filter((t: any) => t.pnl && t.pnl <= 0).length;
-                        const winRate = (wins + losses) > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : '0';
+                    const historyText = history.map((t: any) =>
+                        `${t.coin}: ${t.reason}, PnL: ${t.pnl !== null ? t.pnl + '%' : 'OPEN'}, Vol: $${(t.volume / 1000000).toFixed(1)}M, News: ${t.news_tier || 'NULL'}`
+                    ).join('\n');
 
-                        const historyText = history.map((t: any) =>
-                            `${t.coin}: ${t.reason}, PnL: ${t.pnl || 'OPEN'}%, Vol: $${(t.volume / 1000000).toFixed(1)}M, News: ${t.news_tier || 'NULL'}`
-                        ).join('\n');
-
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({
-                            trade_history: historyText,
-                            total_trades: history.length,
-                            win_rate: winRate,
-                            recent_wins: wins,
-                            recent_losses: losses
-                        }));
-                    } else {
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({
-                            trade_history: 'No trade history yet.',
-                            total_trades: 0,
-                            win_rate: '0',
-                            recent_wins: 0,
-                            recent_losses: 0
-                        }));
-                    }
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        trade_history: history.length > 0 ? historyText : 'No trade history yet.',
+                        total_trades: history.length,
+                        win_rate: winRate.toFixed(1),
+                        recent_wins: wins,
+                        recent_losses: losses
+                    }));
                 } catch (error) {
                     console.error('[API] Trade History Error:', error);
                     res.writeHead(500, { 'Content-Type': 'application/json' });
