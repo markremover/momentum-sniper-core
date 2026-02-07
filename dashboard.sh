@@ -15,14 +15,7 @@ NC='\033[0m' # No Color
 clear
 echo ""
 echo -e "${YELLOW}=================================================${NC}"
-# DYNAMIC VERSION CHECK
-if [ -f "package.json" ]; then
-    VERSION=$(grep '"version":' package.json | cut -d '"' -f 4)
-else
-    VERSION="UNKNOWN"
-fi
-
-echo -e "         ${YELLOW}${BOLD}MOMENTUM SNIPER V$VERSION${NC}"
+echo -e "         ${YELLOW}${BOLD}MOMENTUM SNIPER V21.1${NC}"
 echo -e "${YELLOW}=================================================${NC}"
 echo ""
 
@@ -133,3 +126,7 @@ else
 fi
 
 echo ""
+echo -e "${YELLOW}=================================================${NC}"
+echo -e "${BOLD}LIVE SURVEILLANCE LOGS (Momentum Sniper):${NC}"
+echo -e "${YELLOW}=================================================${NC}"
+docker logs -f --tail 50 momentum-scanner
