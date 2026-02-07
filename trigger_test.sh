@@ -6,7 +6,7 @@
 echo "🚀 SENDING TEST SIGNAL TO N8N..."
 echo "Payload: TEST-USD +10.5% (Simulation)"
 
-curl -X POST http://localhost:5678/webhook/momentum-trigger \
+curl -X POST http://localhost:5678/webhook/momentum-trigger-new-v13 \
      -H "Content-Type: application/json" \
      -d '{
            "type": "PUMP_DETECTED",

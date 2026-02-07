@@ -9,7 +9,7 @@ export const CONFIG = {
         API_SECRET: process.env.COINBASE_API_KEY_SECRET || process.env.COINBASE_API_SECRET || '',
     },
     N8N: {
-        WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || 'http://n8n:5678/webhook/momentum-trigger',
+        WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || 'http://n8n:5678/webhook/momentum-trigger-new-v13',
     },
     SCANNER: {
         PRICE_CHANGE_THRESHOLD: 7, // 7%
