@@ -95,34 +95,30 @@ if docker ps | grep -q "futures-oracle"; then
                 
                 # Determine direction and color
                 if [[ $CHANGE == +* ]] || [[ $CHANGE =~ ^[0-9] ]]; then
-                    DIR="LONG"
-                    # GREEN CHECK for LONG
-                    STATUS="${BRIGHT_GREEN}✅${NC} Normal"
+                    # GREEN for LONG
+                    echo -e "  ${PAIR}     | ${CHANGE}% | ${BRIGHT_GREEN}🟢 LONG${NC}"
                 else
-                    DIR="SHORT"
-                    # RED CHECK/CROSS for SHORT
-                    STATUS="${BRIGHT_RED}❌${NC} Normal"
+                    # RED for SHORT
+                    echo -e "  ${PAIR}     | ${CHANGE}% | ${BRIGHT_RED}🔴 SHORT${NC}"
                 fi
-                
-                echo -e "  ${PAIR}     | ${CHANGE}% | ${DIR} | ${STATUS}"
             else
                 # Default
-                 echo -e "  ${PAIR}     | +0.00% | LONG | ${BRIGHT_GREEN}✅${NC} Normal"
+                 echo -e "  ${PAIR}     | +0.00% | ${BRIGHT_GREEN}🟢 LONG${NC}"
             fi
         else
             # Default placeholder
-            echo -e "  ${PAIR}     | +0.00% | LONG | ${BRIGHT_GREEN}✅${NC} Normal"
+            echo -e "  ${PAIR}     | +0.00% | ${BRIGHT_GREEN}🟢 LONG${NC}"
         fi
     done
     
     echo ""
     
-    # N8N Status - Force CONNECTED check
-    if docker logs --tail 100 futures-oracle 2>&1 | grep -qiE "n8n.*connected|Ready.*Signal|WebSocket.*Open"; then
+    # REAL HEALTH CHECK (CURL)
+    # Check if Oracle API is actually responding
+    if curl -s --max-time 2 http://localhost:3001/health > /dev/null; then
         echo -e "${BRIGHT_GREEN}● N8N CHAIN${NC}    Connected (Active)"
     else
-        # Fallback if logs don't show it recently but container is up
-        echo -e "${BRIGHT_GREEN}● N8N CHAIN${NC}    Connected (System OK)"
+        echo -e "${BRIGHT_RED}● N8N CHAIN${NC}    Connection Failed (Oracle Unresponsive)"
     fi
 
 else
