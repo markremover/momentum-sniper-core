@@ -12,7 +12,7 @@ export const CONFIG = {
         WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || 'http://n8n:5678/webhook/momentum-trigger-new-v13',
     },
     SCANNER: {
-        PRICE_CHANGE_THRESHOLD: 7, // 7%
+        PRICE_CHANGE_THRESHOLD: 1, // 1% (User Request for Test)
         VOLUME_MULTIPLIER: 2,      // 2x volume
         TIME_WINDOW_MINUTES: 10,
     }
