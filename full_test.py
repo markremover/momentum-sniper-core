@@ -28,10 +28,10 @@ print("🚀 Step 1: Sending Mock PUMP to N8N...")
 # 2. Call N8N
 payload = {
     "type": "PUMP_DETECTED",
-    "pair": "TEST-USD",
-    "price": 123.45,
-    "change_percent": 8.5,
-    "volume_24h": 5000000,
+    "pair": "ETH-USD",
+    "price": 3500.00,
+    "change_percent": 4.5,
+    "volume_24h": 150000000,
     "timestamp": 1234567890,
     "is_test": True
 }
