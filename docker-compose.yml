@@ -15,7 +15,7 @@ services:
       - N8N_PROTOCOL=http
       - NODE_ENV=production
       # IMPORTANT: Ensure this IP matches your VPS External IP
-      - WEBHOOK_URL=http://34.173.80.38:5678/
+      - WEBHOOK_URL=http://35.223.93.16:5678/
       - GENERIC_TIMEZONE=America/New_York
       - N8N_SECURE_COOKIE=false
     dns:

@@ -116,12 +116,12 @@ if docker ps | grep -q "futures-oracle"; then
     
     echo ""
     
-    # REAL HEALTH CHECK (CURL)
-    # Check if Oracle API is actually responding
-    if curl -s --max-time 2 http://localhost:3001/health > /dev/null; then
+    # REAL HEALTH CHECK (N8N)
+    # Check if N8N is actually responding
+    if curl -s --max-time 2 http://localhost:5678/healthz > /dev/null; then
         echo -e "${BRIGHT_GREEN}● N8N CHAIN${NC}    Connected (Active)"
     else
-        echo -e "${BRIGHT_RED}● N8N CHAIN${NC}    Connection Failed (Oracle Unresponsive)"
+        echo -e "${BRIGHT_RED}● N8N CHAIN${NC}    Connection Failed (N8N Down)"
     fi
 
 else
