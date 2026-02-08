@@ -417,7 +417,7 @@ export class MomentumScanner {
         }
         // --- DIAGNOSTIC LOGGING (End) ---
 
-        if (percentChange >= CONFIG.SCANNER.PRICE_CHANGE_THRESHOLD) { // [USER TUNED] STRICT SYNC
+        if (percentChange >= 7.0) { // [USER TUNED] STRICT 7.0% SYNC
             if (now - state.lastTrigger > this.COOLDOWN_MS) {
                 if (now - state.lastTrigger < 5000) return;
 
