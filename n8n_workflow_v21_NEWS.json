@@ -156,6 +156,19 @@
         },
         {
             "parameters": {
+                "mode": "append"
+            },
+            "id": "merge-news",
+            "name": "Wait for All News",
+            "type": "n8n-nodes-base.merge",
+            "typeVersion": 1,
+            "position": [
+                1500,
+                340
+            ]
+        },
+        {
+            "parameters": {
                 "jsCode": "// V21.3 STRICT PARALLEL AGGREGATOR\nconst params = $('Webhook').first().json.body;\n// REMOVE -USD and ensure clean ticker\nconst pair = params.pair.replace('-USD', '').trim();\n\nconst getFeed = (nodeName) => {\n    try {\n        const items = $items(nodeName).map(i => i.json);\n        return items.filter(i => !i.error && !i.status_code && i.title);\n    } catch (e) { return []; }\n};\n\n// 1. GATHER DATA (PARALLEL SAFE)\nconst ct = getFeed('RSS Cointelegraph');\nconst cd = getFeed('RSS Coindesk');\nconst dc = getFeed('RSS Decrypt');\nconst cs = getFeed('RSS CryptoSlate');\nconst gn = getFeed('Google News RSS');\n\nlet lunar = {};\ntry {\n    if ($items('LunarCrush (Social)').length > 0) {\n        lunar = $items('LunarCrush (Social)')[0].json;\n    }\n} catch (e) {\n    lunar = {};\n}\n\nlet allNews = [];\n\n// 2. STRICT REGEX FILTER (WORD BOUNDARY ONLY)\n// Prevents 'IMU' matching 'StIMUlus' or 'ETH' matching 'BETHere'\nconst regexInfo = `Regex: \\\\b${pair}\\\\b (Case Insensitive)`;\nconst regex = new RegExp(`\\\\b${pair}\\\\b`, 'i');\n\nconst filterNews = (source, items) => {\n    return items.filter(i => {\n        const title = (i.title || '').trim();\n        const desc = (i.content || i.contentSnippet || i.description || '').trim();\n        // STRICT: Must match whole word ticker\n        return regex.test(title) || regex.test(desc);\n    }).map(i => `[${source}] ${i.title}`);\n};\n\nallNews.push(...filterNews('CoinTelegraph', ct));\nallNews.push(...filterNews('CoinDesk', cd));\nallNews.push(...filterNews('Decrypt', dc));\nallNews.push(...filterNews('CryptoSlate', cs));\nallNews.push(...filterNews('GoogleNews', gn));\n\n// 3. SOCIAL DATA\nlet socialText = 'No LunarCrush Data';\nlet hasHype = false;\nif (lunar && lunar.data) {\n    const s = lunar.data;\n    socialText = `Social Vol: ${s.social_volume || 0} | Rank: ${s.alt_rank || 0}`;\n    if (s.social_volume_calc_24h_percent > 50) hasHype = true;\n}\n\n// 4. PREPARE CONTEXT\nconst finalContext = allNews.length > 0 \n    ? allNews.slice(0, 15).join('\\n') \n    : 'NO_NEWS_FOUND';\n\nconst uniqueSources = [...new Set(allNews.map(i => {\n    const match = i.match(/^\\\\[(.*?)\\\\]/);\n    return match ? match[1] : null;\n}).filter(Boolean))].join(', ');\n\nreturn [{\n    json: {\n        news_context: finalContext + '\\n\\n' + socialText,\n        news_count: allNews.length,\n        news_sources: uniqueSources || \"None\",\n        found_sources: uniqueSources || \"None\",\n        has_social_hype: hasHype,\n        regex_used: regexInfo // Debug info to verify strictness\n    }\n}];"
             },
             "id": "news-aggregator-v21",
@@ -333,7 +346,27 @@
                         "index": 0
                     },
                     {
+                        "node": "RSS Coindesk",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "RSS Decrypt",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
                         "node": "RSS CryptoSlate",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Google News RSS",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "LunarCrush (Social)",
                         "type": "main",
                         "index": 0
                     }
@@ -352,7 +385,7 @@
             "main": [
                 [
                     {
-                        "node": "RSS Coindesk",
+                        "node": "Wait for All News",
                         "type": "main",
                         "index": 0
                     }
@@ -363,7 +396,7 @@
             "main": [
                 [
                     {
-                        "node": "RSS Decrypt",
+                        "node": "Wait for All News",
                         "type": "main",
                         "index": 0
                     }
@@ -374,7 +407,7 @@
             "main": [
                 [
                     {
-                        "node": "Aggregator (V21)",
+                        "node": "Wait for All News",
                         "type": "main",
                         "index": 0
                     }
@@ -385,7 +418,7 @@
             "main": [
                 [
                     {
-                        "node": "LunarCrush (Social)",
+                        "node": "Wait for All News",
                         "type": "main",
                         "index": 0
                     }
@@ -396,7 +429,7 @@
             "main": [
                 [
                     {
-                        "node": "Aggregator (V21)",
+                        "node": "Wait for All News",
                         "type": "main",
                         "index": 0
                     }
@@ -407,7 +440,7 @@
             "main": [
                 [
                     {
-                        "node": "Aggregator (V21)",
+                        "node": "Wait for All News",
                         "type": "main",
                         "index": 0
                     }
@@ -415,6 +448,17 @@
             ]
         },
         "Read Trade History (V21)": {
+            "main": [
+                [
+                    {
+                        "node": "Wait for All News",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait for All News": {
             "main": [
                 [
                     {
