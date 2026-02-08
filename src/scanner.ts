@@ -540,6 +540,12 @@ export class MomentumScanner {
                 }
             }
 
+            // [V21.2 FIX] Handle Array Response from N8N
+            if (Array.isArray(decision)) {
+                // console.log('[DEBUG] N8N returned Array. Using first item.');
+                decision = decision.length > 0 ? decision[0] : {};
+            }
+
             // 2. LOGIC CHECK
             const conf = decision.confidence || 0;
             const mode = decision.mode || 'SCALP';
