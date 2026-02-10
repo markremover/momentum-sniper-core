@@ -20,14 +20,14 @@ echo -e "${YELLOW}=================================================${NC}"
 echo ""
 
 # SERVER TIME
-echo -e "Server Time: $(date '+%Y-%m-%d %H:%M:%S %p')"
+echo -e "Server Time: $(TZ='America/Los_Angeles' date '+%Y-%m-%d %H:%M:%S %p')"
 echo ""
 
 # 1. CHECK MOMENTUM SNIPER (SCANNER)
 if docker ps | grep -q "momentum-scanner"; then
     UPTIME=$(docker ps --filter "name=momentum-scanner" --format "{{.Status}}" | grep -oP 'Up \K[^(]+' | sed 's/ *$//')
     # ADDED TIME WINDOW DISPLAY (10m)
-    echo -e "${BRIGHT_GREEN}● HOT ACTIVE${NC}    Up ${UPTIME}  |  ${CYAN}Time Window: 10m${NC}"
+    echo -e "${BRIGHT_GREEN}● HOT ACTIVE${NC}    Up ${UPTIME}"
     
     # P&L Check
     PNL_LINE=$(docker logs --tail 100 momentum-scanner 2>&1 | grep "Day PnL:" | tail -1)
