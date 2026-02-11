@@ -1,0 +1,539 @@
+{
+    "name": "Momentum Sniper V27 (BULLETPROOF PARSER + NAME MAP)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "momentum-trigger-new-v13",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                220,
+                340
+            ],
+            "webhookId": "momentum-trigger-new-v13"
+        },
+        {
+            "parameters": {
+                "dataType": "string",
+                "value1": "={{ $json[\"body\"][\"type\"] }}",
+                "rules": {
+                    "rules": [
+                        {
+                            "value2": "PUMP_DETECTED"
+                        },
+                        {
+                            "value2": "TRADE_RESULT",
+                            "output": 1
+                        },
+                        {
+                            "value2": "TRADE_PULSE",
+                            "output": 2
+                        }
+                    ]
+                }
+            },
+            "id": "switch-event",
+            "name": "Switch Event",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                440,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "url": "http://momentum-scanner:3000/trade-history",
+                "options": {}
+            },
+            "id": "read-trade-history",
+            "name": "Read Trade History (V27)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                660,
+                200
+            ],
+            "continueOnFail": true
+        },
+        {
+            "parameters": {
+                "url": "https://cointelegraph.com/rss"
+            },
+            "id": "rss-cointelegraph",
+            "name": "RSS Cointelegraph",
+            "type": "n8n-nodes-base.rssFeedRead",
+            "typeVersion": 1,
+            "position": [
+                900,
+                100
+            ],
+            "continueOnFail": true
+        },
+        {
+            "parameters": {
+                "url": "https://www.coindesk.com/arc/outboundfeeds/rss/"
+            },
+            "id": "rss-coindesk",
+            "name": "RSS Coindesk",
+            "type": "n8n-nodes-base.rssFeedRead",
+            "typeVersion": 1,
+            "position": [
+                1100,
+                100
+            ],
+            "continueOnFail": true
+        },
+        {
+            "parameters": {
+                "url": "https://decrypt.co/feed"
+            },
+            "id": "rss-decrypt",
+            "name": "RSS Decrypt",
+            "type": "n8n-nodes-base.rssFeedRead",
+            "typeVersion": 1,
+            "position": [
+                1300,
+                100
+            ],
+            "continueOnFail": true
+        },
+        {
+            "parameters": {
+                "url": "https://cryptoslate.com/feed/"
+            },
+            "id": "rss-cryptoslate",
+            "name": "RSS CryptoSlate",
+            "type": "n8n-nodes-base.rssFeedRead",
+            "typeVersion": 1,
+            "position": [
+                900,
+                400
+            ],
+            "continueOnFail": true
+        },
+        {
+            "parameters": {
+                "url": "={{ 'https://lunarcrush.com/api4/public/coins/' + $('Webhook').first().json.body.pair.replace('-USD','') }}",
+                "headerParametersUi": {
+                    "parameter": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer zegf0phkyr6v7ti6cyq2v8u1emlh0bxhscogic25"
+                        }
+                    ]
+                }
+            },
+            "id": "api-lunarcrush",
+            "name": "LunarCrush (Social)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1100,
+                400
+            ],
+            "continueOnFail": true
+        },
+        {
+            "parameters": {
+                "url": "={{ 'https://news.google.com/rss/search?q=' + $('Webhook').first().json.body.pair.replace('-USD','') + '+crypto+when:1d&hl=en-US&gl=US&ceid=US:en' }}"
+            },
+            "id": "rss-google",
+            "name": "Google News RSS",
+            "type": "n8n-nodes-base.rssFeedRead",
+            "typeVersion": 1,
+            "position": [
+                1300,
+                400
+            ],
+            "continueOnFail": true
+        },
+        {
+            "parameters": {
+                "mode": "append"
+            },
+            "id": "merge-news",
+            "name": "Wait for All News",
+            "type": "n8n-nodes-base.merge",
+            "typeVersion": 1,
+            "position": [
+                1500,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// V27 AGGREGATOR (MANUAL MAP + LUNAR FALLBACK)\nconst params = $('Webhook').first().json.body;\nconst ticker = params.pair.replace('-USD', '').trim();\n\n// 1. MANUAL NAME MAP (For ambiguous tickers)\nconst manualMap = {\n    'PNG': 'Pangolin',\n    'UNI': 'Uniswap',\n    'RARI': 'Rarible',\n    'SUSHI': 'SushiSwap',\n    'GALA': 'Gala Games',\n    'SAND': 'The Sandbox',\n    'MANA': 'Decentraland',\n    'AXS': 'Axie Infinity'\n};\n\nlet fullName = params.coin_name || manualMap[ticker] || ticker;\n\nconst getFeed = (nodeName) => {\n    try {\n        const items = $items(nodeName).map(i => i.json);\n        return items.filter(i => !i.error && !i.status_code && i.title);\n    } catch (e) { return []; }\n};\n\n// 2. DATA GATHERING\nconst ct = getFeed('RSS Cointelegraph');\nconst cd = getFeed('RSS Coindesk');\nconst dc = getFeed('RSS Decrypt');\nconst cs = getFeed('RSS CryptoSlate');\nconst gn = getFeed('Google News RSS');\n\n// 3. LUNARCRUSH (RESILIENT + NAME DISCOVERY)\nlet lunar = {};\nlet lunarName = null;\nlet socialUnavailable = false;\n\ntry {\n    const lunarItems = $items('LunarCrush (Social)');\n    if (lunarItems.length > 0 && !lunarItems[0].error && !lunarItems[0].json.error) {\n         const raw = lunarItems[0].json;\n         if (raw.data) {\n            lunar = raw.data;\n            lunarName = lunar.name;\n         } else {\n             socialUnavailable = true;\n         }\n    } else {\n        socialUnavailable = true;\n    }\n} catch (e) {\n    socialUnavailable = true;\n}\n\n// If Lunar found a name, it overrides manual map (usually more accurate)\nif (lunarName) fullName = lunarName;\n\n// 4. SMART REGEX (V27)\n// Matches TICKER or NAME (e.g. \"PNG\" or \"Pangolin\")\nconst regex = new RegExp(\"\\\\b(\" + ticker + \"|\" + fullName + \")\\\\b\", \"i\");\nconst regexInfo = `Regex: ${regex.toString()} (Name: ${fullName})`;\n\nconst filterNews = (source, items) => {\n    return items.filter(i => {\n        const title = (i.title || '').trim();\n        const desc = (i.content || i.contentSnippet || i.description || '').trim();\n        return regex.test(title) || regex.test(desc);\n    }).map(i => `[${source}] ${i.title}`);\n};\n\nlet allNews = [];\nallNews.push(...filterNews('CoinTelegraph', ct));\nallNews.push(...filterNews('CoinDesk', cd));\nallNews.push(...filterNews('Decrypt', dc));\nallNews.push(...filterNews('CryptoSlate', cs));\nallNews.push(...filterNews('GoogleNews', gn));\n\n// 5. SOCIAL STATUS REPORT\nlet socialText = '';\nlet hasHype = false;\n\nif (socialUnavailable) {\n    socialText = 'Social Hype: Data Unavailable (BONUS MODE - IGNORE MISSING SOCIAL)';\n} else {\n    socialText = `Name: ${lunar.name || ticker} | Social Vol: ${lunar.social_volume || 0} | Rank: ${lunar.alt_rank || 0}`;\n    if (lunar.social_volume_calc_24h_percent > 50) hasHype = true;\n}\n\n// 6. OUTPUT\nconst finalContext = allNews.length > 0 \n    ? allNews.slice(0, 20).join('\\n') \n    : 'NO_NEWS_FOUND';\n\nconst uniqueSources = [...new Set(allNews.map(i => {\n    const match = i.match(/^\\\\[(.*?)\\\\]/);\n    return match ? match[1] : null;\n}).filter(Boolean))].join(', ');\n\nreturn [{\n    json: {\n        news_context: finalContext + '\\n\\n' + socialText,\n        news_count: allNews.length,\n        news_sources: uniqueSources || \"None\",\n        found_sources: uniqueSources || \"None\",\n        has_social_hype: hasHype,\n        regex_used: regexInfo,\n        coin_full_name: fullName // PASS TO GEMINI\n    }\n}];"
+            },
+            "id": "news-aggregator-v27",
+            "name": "Aggregator (V27)",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                1700,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "prompt_template",
+                            "value": "{\n  \"instruction\": \"ACT AS A SECURITY GUARD FOR CRYPTO NEWS (ENTITY GUARD).\",\n  \"ENTITY_GUARD_PROTOCOL\": {\n      \"STEP_1\": \"VERIFY that the news is about the CRYPTO ASSET '{{ $json.body.pair }}' ({{ $json.coin_full_name }}).\",\n      \"STEP_2\": \"REJECT if it refers to a PERSON (e.g. Vara Prasad), a PLACE, or a COMMON WORD (e.g. Super).\",\n      \"STEP_3\": \"REJECT if the ticker is just a substring of another word (e.g. 'SUP' in 'SUPER').\",\n      \"STEP_4\": \"REJECT if the news is about the whole market (e.g. 'Bitcoin pump') and not specific to this asset.\"\n  },\n  \"SCORING_RULES\": {\n      \"SCORE_0_BLOCK\": \"If news is about a person, unrelated entity, or NO news found.\",\n      \"SCORE_7_9_BUY\": \"ONLY if VALIDATED news about specific project updates/partnerships/listings.\",\n      \"SCORE_5_HYPE\": \"Social Volume Spike > 50% confirmed by LunarCrush.\",\n      \"BONUS_RULE\": \"Social Data is BONUS. If 'Data Unavailable', IGNORE it. Do NOT lower confidence. Rely on NEWS VOLUME.\"\n  },\n  \"inputs\": {\n      \"asset_ticker\": \"{{ $json.body.pair }}\",\n      \"asset_name\": \"{{ $json.coin_full_name }}\",\n      \"news_data\": \"{{ $json.news_context.replace(/\\\"/g, \\\"'\\\") }}\",\n      \"social_data\": \"{{ $json.has_social_hype }}\"\n  },\n  \"output_format\": \"ONLY JSON: { 'action': 'BUY/BLOCK', 'confidence': 0-100, 'news_score': 0-10, 'mode': 'SCALP/MOON', 'reason': 'ENTITY_CHECK_RESULT' }\"\n}"
+                        }
+                    ]
+                }
+            },
+            "id": "set-prompt-v26",
+            "name": "Set Prompt (V26)",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                1900,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpQueryAuth",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "contents",
+                            "value": "={{ [{\"parts\": [{\"text\": $json.prompt_template}]}] }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "gemini-catalyst",
+            "name": "Consult Gemini (Catalyst)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                2100,
+                340
+            ],
+            "continueOnFail": true
+        },
+        {
+            "parameters": {
+                "jsCode": "// V27 BULLETPROOF PARSER\nconst geminiRaw = $json.candidates[0].content.parts[0].text;\nlet geminiDecision;\n\ntry {\n    // REGEX: Find FIRST JSON object { ... } irrespective of surroundings\n    const jsonMatch = geminiRaw.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n        geminiDecision = JSON.parse(jsonMatch[0]);\n    } else {\n        throw new Error(\"No JSON found in Gemini response\");\n    }\n} catch (e) {\n    // FALLBACK BLOCK - SAFETY FIRST\n    geminiDecision = { \n        action: 'BLOCK', \n        confidence: 0, \n        news_score: 0,\n        reason: 'PARSING_ERROR: ' + e.message + ' | RAW: ' + geminiRaw.substring(0, 50)\n    };\n}\n\n// FORCE FIELDS\nif (geminiDecision.news_score === undefined) geminiDecision.news_score = geminiDecision.tier || 0;\n\n// SILENT WHALE CHECK 🐳\nconst signal = $node[\"Webhook\"].json.body;\nconst VOLUME_THRESHOLD = 10000000; // $10M\n\nif (geminiDecision.news_score === 0 || geminiDecision.action === 'BLOCK') {\n    if (signal.volume_24h > VOLUME_THRESHOLD) {\n        geminiDecision.action = 'BUY';\n        geminiDecision.confidence = 85;\n        geminiDecision.mode = 'SCALP';\n        geminiDecision.reason = `SILENT WHALE KICKER: Vol $${(signal.volume_24h/1e6).toFixed(1)}M > $10M implies Insider Move.`;\n        geminiDecision.whale_override = true;\n    }\n}\n\nreturn [{ json: geminiDecision }];"
+            },
+            "id": "parse-v27",
+            "name": "Parse (V27)",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                2300,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ $json }}",
+                "options": {}
+            },
+            "id": "webhook-response-pump",
+            "name": "Respond (Pump Analysis)",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                2500,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "prompt_template",
+                            "value": "RE-EVALUATION PULSE (HYBRID):\nPair: {{ $json.body.pair }}\nPnL: {{ $json.body.pnl }}%\n..."
+                        }
+                    ]
+                }
+            },
+            "id": "pulse-config",
+            "name": "Set Config (Pulse)",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                1900,
+                540
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpQueryAuth",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "contents",
+                            "value": "={{ [{\"parts\": [{\"text\": $json.prompt_template}]}] }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "gemini-pulse",
+            "name": "Consult Gemini (Pulse)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                2100,
+                540
+            ],
+            "continueOnFail": true
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.parse($json[\"candidates\"][0][\"content\"][\"parts\"][0][\"text\"].replace(/```json/g, \"\").replace(/```/g, \"\")) }}",
+                "options": {}
+            },
+            "id": "webhook-response-pulse",
+            "name": "Respond (Pulse)",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                2500,
+                540
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Switch Event",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch Event": {
+            "main": [
+                [
+                    {
+                        "node": "Read Trade History (V27)",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "RSS Cointelegraph",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "RSS Coindesk",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "RSS Decrypt",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "RSS CryptoSlate",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Google News RSS",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "LunarCrush (Social)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [],
+                [
+                    {
+                        "node": "Set Config (Pulse)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Read Trade History (V27)": {
+            "main": [
+                [
+                    {
+                        "node": "Wait for All News",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "RSS Cointelegraph": {
+            "main": [
+                [
+                    {
+                        "node": "Wait for All News",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "RSS Coindesk": {
+            "main": [
+                [
+                    {
+                        "node": "Wait for All News",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "RSS Decrypt": {
+            "main": [
+                [
+                    {
+                        "node": "Wait for All News",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "RSS CryptoSlate": {
+            "main": [
+                [
+                    {
+                        "node": "Wait for All News",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Google News RSS": {
+            "main": [
+                [
+                    {
+                        "node": "Wait for All News",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "LunarCrush (Social)": {
+            "main": [
+                [
+                    {
+                        "node": "Wait for All News",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait for All News": {
+            "main": [
+                [
+                    {
+                        "node": "Aggregator (V27)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Aggregator (V27)": {
+            "main": [
+                [
+                    {
+                        "node": "Set Prompt (V26)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Prompt (V26)": {
+            "main": [
+                [
+                    {
+                        "node": "Consult Gemini (Catalyst)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Consult Gemini (Catalyst)": {
+            "main": [
+                [
+                    {
+                        "node": "Parse (V27)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse (V27)": {
+            "main": [
+                [
+                    {
+                        "node": "Respond (Pump Analysis)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Config (Pulse)": {
+            "main": [
+                [
+                    {
+                        "node": "Consult Gemini (Pulse)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Consult Gemini (Pulse)": {
+            "main": [
+                [
+                    {
+                        "node": "Respond (Pulse)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
