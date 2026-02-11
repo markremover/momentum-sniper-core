@@ -60,12 +60,13 @@ if docker ps | grep -q "momentum-scanner"; then
     echo -e "${YELLOW}--- LIVE SCALP TARGETS (Top 3) ---${NC}"
     # Logic: Get last 400 lines -> Grep DIAGNOSTIC -> Tail 100 -> Reverse -> Unique by Pair ($2) -> Head 3
     docker logs --tail 400 momentum-scanner 2>&1 | grep "DIAGNOSTIC" | tail -100 | tac | awk '!seen[$2]++' | head -3 | while read line; do
-        if [[ $line =~ \[DIAGNOSTIC\]\ ([A-Z]+-USD)\ is\ moving!\ \+([0-9.]+)%\ \|\ Vol:\ ([0-9.]+)M ]]; then
+        # Regex update: Handle optional '$' in Volume string
+        if [[ $line =~ \[DIAGNOSTIC\]\ ([A-Z]+-USD)\ is\ moving!\ \+([0-9.]+)%\ \|\ Vol:\ \$?([0-9.]+)M ]]; then
             PAIR="${BASH_REMATCH[1]}"
             CHANGE="${BASH_REMATCH[2]}"
             VOL="${BASH_REMATCH[3]}"
             # FORCE GREEN ONLY
-            echo -e "${CYAN}🚀${NC} ${PAIR} is moving! ${BRIGHT_GREEN}+${CHANGE}%${NC} | Vol: ${VOL}M"
+            echo -e "${CYAN}🚀${NC} ${PAIR} is moving! ${BRIGHT_GREEN}+${CHANGE}%${NC} | Vol: $${VOL}M"
         fi
     done
 else
