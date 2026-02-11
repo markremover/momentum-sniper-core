@@ -93,20 +93,22 @@ if docker ps | grep -q "futures-oracle"; then
         PAIR_LOG=$(docker logs --tail 200 futures-oracle 2>&1 | grep -i "$PAIR" | tail -1)
         
         if [ -n "$PAIR_LOG" ]; then
-            if [[ $PAIR_LOG =~ ([+-]?[0-9]+\.[0-9]+)% ]]; then
+            # Regex to capture: 1=Change, 2=Timer (optional)
+            if [[ $PAIR_LOG =~ ([+-]?[0-9]+\.[0-9]+)%.*(\([0-9]+m\ [0-9]+s\)) ]]; then
                 CHANGE="${BASH_REMATCH[1]}"
-                
-                # Determine direction and color
-                if [[ $CHANGE == +* ]] || [[ $CHANGE =~ ^[0-9] ]]; then
-                    # GREEN for LONG
-                    echo -e "  ${PAIR}     | ${CHANGE}% | ${BRIGHT_GREEN}🟢 LONG${NC}"
-                else
-                    # RED for SHORT
-                    echo -e "  ${PAIR}     | ${CHANGE}% | ${BRIGHT_RED}🔴 SHORT${NC}"
-                fi
+                TIMER="${BASH_REMATCH[2]}"
+            elif [[ $PAIR_LOG =~ ([+-]?[0-9]+\.[0-9]+)% ]]; then
+                CHANGE="${BASH_REMATCH[1]}"
+                TIMER=""
+            fi
+
+            # Determine direction and color
+            if [[ $CHANGE == +* ]] || [[ $CHANGE =~ ^[0-9] ]]; then
+                # GREEN for LONG
+                echo -e "  ${PAIR}     | ${CHANGE}% | ${BRIGHT_GREEN}🟢 LONG${NC} ${TIMER}"
             else
-                # Default
-                 echo -e "  ${PAIR}     | +0.00% | ${BRIGHT_GREEN}🟢 LONG${NC}"
+                # RED for SHORT
+                echo -e "  ${PAIR}     | ${CHANGE}% | ${BRIGHT_RED}🔴 SHORT${NC} ${TIMER}"
             fi
         else
             # Default placeholder
