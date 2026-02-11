@@ -366,6 +366,16 @@ export class MomentumScanner {
     private async detectAnomalies(product_id: string, state: ProductState, currentPrice: number, currentVolumeUSD: number, now: number) {
         if (state.activeTrade) return;
 
+        // V23.5 FIX: VISIBILITY FIRST (Show logs for menu)
+        if (state.history.length > 0) {
+            const oldest = state.history[0];
+            const percentChange = ((currentPrice - oldest.price) / oldest.price) * 100;
+            if (percentChange >= 3.0) {
+                const lowVolTag = currentVolumeUSD < this.VOLUME_FLOOR_USD ? " (LOW VOL)" : "";
+                console.log(`[DIAGNOSTIC] ${product_id} is moving! +${percentChange.toFixed(2)}% | Vol: $${(currentVolumeUSD / 1e6).toFixed(2)}M${lowVolTag}`);
+            }
+        }
+
         // 1. HARD VOLUME CHECK (SAFETY 🛑) - V23.5 USD Check
         // Volume Floor: $500k USD
         if (currentVolumeUSD < this.VOLUME_FLOOR_USD) {
