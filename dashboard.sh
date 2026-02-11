@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 clear
 echo ""
 echo -e "${YELLOW}=================================================${NC}"
-echo -e "         ${YELLOW}${BOLD}MOMENTUM SNIPER V21.2 (ARRAY FIX)${NC}"
+echo -e "         ${YELLOW}${BOLD}MOMENTUM SNIPER V23.4 (WHALE EDITION)${NC}"
 echo -e "${YELLOW}=================================================${NC}"
 echo ""
 
@@ -73,7 +73,7 @@ if [ -z "$ORACLE_ID" ]; then
     ORACLE_ID="futures-oracle"
 fi
 
-echo -e "${YELLOW}${BOLD}FUTURES ORACLE V23.0${NC}"
+echo -e "${YELLOW}${BOLD}FUTURES ORACLE V23.4 (Hybrid Whale)${NC}"
 echo ""
 
 if docker ps | grep -q "futures-oracle"; then
