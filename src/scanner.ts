@@ -90,8 +90,9 @@ export class MomentumScanner {
 
     private connect() {
         const url = CONFIG.COINBASE.WS_URL;
-        const VERSION = 'V21.2 (ARRAY FIX)';
+        const VERSION = 'V23.5 (CLEAN & SENSITIVE)';
         console.log(`[CONNECT] Connecting to ${url}...`);
+        console.log(`[VERSION] Starting Momentum Sniper ${VERSION}`);
         this.ws = new WebSocket(url);
 
         // [V17 FIX] Connection Watchdog 🐕

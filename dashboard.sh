@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 clear
 echo ""
 echo -e "${YELLOW}=================================================${NC}"
-echo -e "         ${YELLOW}${BOLD}MOMENTUM SNIPER V23.4 (WHALE EDITION)${NC}"
+echo -e "         ${YELLOW}${BOLD}MOMENTUM SNIPER V23.5 (CLEAN & SENSITIVE)${NC}"
 echo -e "${YELLOW}=================================================${NC}"
 echo ""
 
