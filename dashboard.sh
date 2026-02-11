@@ -12,11 +12,20 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
+# 0. DYNAMIC VERSION CHECK (TRUTH)
+# Get version from running ORACLE container (the one that matters)
+REAL_VERSION=$(docker logs --tail 200 futures-oracle 2>&1 | grep "Oracle V" | tail -1 | sed 's/.*Oracle //; s/ Started.*//')
+
+if [ -z "$REAL_VERSION" ]; then
+    # Fallback if logs are empty (just started)
+    REAL_VERSION="DETECTING..."
+fi
+
 clear
 echo ""
-echo -e "${YELLOW}=================================================${NC}"
-echo -e "         ${YELLOW}${BOLD}MOMENTUM SNIPER V23.5 (CLEAN & SENSITIVE)${NC}"
-echo -e "${YELLOW}=================================================${NC}"
+echo -e "${YELLOW}======================================================${NC}"
+echo -e "${YELLOW}       MOMENTUM SNIPER ${REAL_VERSION}      ${NC}"
+echo -e "${YELLOW}======================================================${NC}"
 echo ""
 
 # SERVER TIME
