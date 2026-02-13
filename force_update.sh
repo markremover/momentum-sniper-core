@@ -1,19 +1,17 @@
 #!/bin/bash
-# FORCE UPDATE SCRIPT V23.5
 
-echo "🛑 STOPPING Old Scanner..."
-docker stop momentum-scanner
-docker rm momentum-scanner
+# FORCE UPDATE SCRIPT FOR VM
+# This script forces a hard reset and pulls latest dashboard.sh
 
-echo "⬇️ PULLING Latest Code..."
-git pull
+echo "🔄 Force updating dashboard from GitHub..."
 
-echo "🏗️ REBUILDING Scanner (No Cache)..."
-docker-compose build --no-cache scanner
+cd /home/karmez1988/momentum-sniper
 
-echo "🚀 STARTING New Scanner..."
-docker-compose up -d scanner
+# Force reset to remote state
+git fetch origin
+git reset --hard origin/main
 
-echo "✅ DONE! Waiting for startup..."
-sleep 5
-docker logs momentum-scanner | grep "Starting Momentum Sniper"
+# Make executable
+chmod +x dashboard.sh fix_menu_alias.sh
+
+echo "✅ Dashboard updated! Run 'menu' to see changes."
