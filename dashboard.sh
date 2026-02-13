@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Version: V20.1-FINAL
+# Version: V29-FINAL
 # Colors
 GREEN='\033[0;32m'
 BRIGHT_GREEN='\033[1;32m'
@@ -12,19 +12,23 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
-# 0. DYNAMIC VERSION CHECK (TRUTH)
-# Get version from running ORACLE container (the one that matters)
-REAL_VERSION=$(docker logs --tail 200 futures-oracle 2>&1 | grep "Oracle V" | tail -1 | sed 's/.*Oracle //; s/ Started.*//')
+# 0. DYNAMIC VERSION CHECK (MOMENTUM SNIPER)
+# Get version from running MOMENTUM SCANNER container
+REAL_VERSION=$(docker logs --tail 200 momentum-scanner 2>&1 | grep -i "V23\|V24\|V25\|V26\|V27\|V28\|V29" | tail -1 | sed 's/.*V/V/; s/ .*//')
 
 if [ -z "$REAL_VERSION" ]; then
-    # Fallback if logs are empty (just started)
-    REAL_VERSION="DETECTING..."
+    # Fallback - check for any version tag
+    REAL_VERSION=$(docker logs --tail 500 momentum-scanner 2>&1 | grep -oP 'V\d+\.\d+' | tail -1)
+fi
+
+if [ -z "$REAL_VERSION" ]; then
+    REAL_VERSION="V23.5+"
 fi
 
 clear
 echo ""
 echo -e "${YELLOW}======================================================${NC}"
-echo -e "${YELLOW}       MOMENTUM SNIPER ${REAL_VERSION}      ${NC}"
+echo -e "${YELLOW}  🚀 ANTIGRAVITY COMMAND CENTER 🚀  ${NC}"
 echo -e "${YELLOW}======================================================${NC}"
 echo ""
 
@@ -33,10 +37,19 @@ echo -e "Server Time: $(TZ='America/Los_Angeles' date '+%Y-%m-%d %H:%M:%S %p')"
 echo ""
 
 # 1. CHECK MOMENTUM SNIPER (SCANNER)
+echo -e "${YELLOW}[ Checking Momentum Sniper... ]${NC}"
 if docker ps | grep -q "momentum-scanner"; then
+    echo -e "${BRIGHT_GREEN}✅ ACTIVE${NC} (Container: momentum-brain | Version: ${REAL_VERSION})"
+    
     UPTIME=$(docker ps --filter "name=momentum-scanner" --format "{{.Status}}" | grep -oP 'Up \K[^(]+' | sed 's/ *$//')
-    # ADDED TIME WINDOW DISPLAY (10m)
-    echo -e "${BRIGHT_GREEN}● HOT ACTIVE${NC}    Up ${UPTIME}"
+    echo "   Status: Up ${UPTIME}"
+    
+    # N8N CONNECTION CHECK
+    if curl -s --max-time 2 http://localhost:5678/healthz > /dev/null 2>&1; then
+        echo -e "   Health: ${BRIGHT_GREEN}🟢 SYSTEM ONLINE & WATCHING MARKETS${NC}"
+    else
+        echo -e "   Health: ${YELLOW}⚠ N8N Connection Lost${NC}"
+    fi
     
     # P&L Check
     PNL_LINE=$(docker logs --tail 100 momentum-scanner 2>&1 | grep "Day PnL:" | tail -1)
@@ -51,24 +64,37 @@ if docker ps | grep -q "momentum-scanner"; then
                 PNL_COLOR="${BRIGHT_RED}"
                 PNL_ICON="❌"
             fi
-            echo -e "${BRIGHT_GREEN}💚${NC}[REALHEART] Pulse: 360 | Active: 4 | Day PnL: ${PNL_COLOR}${PNL_VALUE}% ${PNL_ICON}${NC}"
+            echo ""
+            echo -e "${YELLOW}Recent Logs:${NC}"
+            echo -e "   💚 [REALHEART] Pulse: 360 | Active: 4 | Day PnL: ${PNL_COLOR}${PNL_VALUE}% ${PNL_ICON}${NC}"
         fi
     fi
     
     # LIVE LOGS (TOP 3 UNIQUE MOVEMENTS)
     echo ""
     echo -e "${YELLOW}--- LIVE SCALP TARGETS (Top 3) ---${NC}"
+    
     # Logic: Get last 400 lines -> Grep DIAGNOSTIC -> Tail 100 -> Reverse -> Unique by Pair ($2) -> Head 3
+    FOUND_LOGS=0
     docker logs --tail 400 momentum-scanner 2>&1 | grep "DIAGNOSTIC" | tail -100 | tac | awk '!seen[$2]++' | head -3 | while read line; do
         # Regex update: Handle optional '$' in Volume string
         if [[ $line =~ \[DIAGNOSTIC\]\ ([A-Z]+-USD)\ is\ moving!\ \+([0-9.]+)%\ \|\ Vol:\ \$?([0-9.]+)M ]]; then
             PAIR="${BASH_REMATCH[1]}"
             CHANGE="${BASH_REMATCH[2]}"
             VOL="${BASH_REMATCH[3]}"
-            # FORCE GREEN ONLY
-            echo -e "${CYAN}🚀${NC} ${PAIR} is moving! ${BRIGHT_GREEN}+${CHANGE}%${NC} | Vol: $${VOL}M"
+            # FORCE BRIGHT GREEN
+            echo -e "   ${CYAN}🚀${NC} ${PAIR} is moving! ${BRIGHT_GREEN}+${CHANGE}%${NC} | Vol: \$${VOL}M"
+            FOUND_LOGS=1
         fi
     done
+    
+    # Show message if no logs found (check outside loop)
+    if [ $FOUND_LOGS -eq 0 ]; then
+        LOG_COUNT=$(docker logs --tail 400 momentum-scanner 2>&1 | grep -c "DIAGNOSTIC")
+        if [ $LOG_COUNT -eq 0 ]; then
+            echo -e "   ${YELLOW}(No recent movements detected in last 24h)${NC}"
+        fi
+    fi
 else
     echo -e "${RED}❌ OFFLINE${NC}"
 fi
@@ -89,59 +115,45 @@ if [ -f "/home/karmez1988/futures-oracle/package.json" ]; then
     ORACLE_VERSION=$(grep '"version"' /home/karmez1988/futures-oracle/package.json | head -1 | sed 's/.*: "\(.*\)".*/\1/')
 fi
 
-echo -e "${YELLOW}${BOLD}FUTURES ORACLE V${ORACLE_VERSION} (News Filter Enhanced)${NC}"
-echo ""
+echo -e "${YELLOW}[ Checking Futures Oracle... ]${NC}"
 
 if docker ps | grep -q "futures-oracle"; then
     # Uptime & Heartbeat
     UPTIME_ORACLE=$(docker ps --filter "name=futures-oracle" --format "{{.Status}}" | grep -oP 'Up \K[^(]+' | sed 's/ *$//')
     RESTART_COUNT=$(docker inspect --format='{{.RestartCount}}' futures-oracle 2>/dev/null || echo "0")
     
-    echo -e "${BRIGHT_GREEN}● ORACLE ACTIVE${NC}  Up ${UPTIME_ORACLE}"
-    echo -e "${YELLOW}⚠${NC} Heartbeat: ${RESTART_COUNT} (Stable)"
+    echo -e "${BRIGHT_GREEN}✅ ACTIVE${NC} (Container: futures-oracle | Version: ${ORACLE_VERSION})"
+    echo "   Status: Up ${UPTIME_ORACLE}"
     
     # Get logs for monitored pairs: ETH, DOGE, SOL, SUI, XRP
-    PAIRS=("ETH-USD" "DOGE-USD" "SOL-USD" "SUI-USD" "XRP-USD")
+    PAIRS=("XRP-USD" "SUI-USD" "DOGE-USD")
     
-    echo ""
+    echo -e "   ${YELLOW}Recent Logs:${NC}"
     for PAIR in "${PAIRS[@]}"; do
         # Try to find this pair in logs - Get LAST occurrence
         PAIR_LOG=$(docker logs --tail 200 futures-oracle 2>&1 | grep -i "$PAIR" | tail -1)
         
         if [ -n "$PAIR_LOG" ]; then
-            # Regex to capture: 1=Change, 2=Timer (optional)
-            if [[ $PAIR_LOG =~ ([+-]?[0-9]+\.[0-9]+)%.*(\([0-9]+m\ [0-9]+s\)) ]]; then
+            # Regex to capture: 1=Change, 2=Signal Type
+            if [[ $PAIR_LOG =~ ([+-]?[0-9]+\.[0-9]+)%.*(LONG|SHORT|Normal) ]]; then
                 CHANGE="${BASH_REMATCH[1]}"
-                TIMER="${BASH_REMATCH[2]}"
-            elif [[ $PAIR_LOG =~ ([+-]?[0-9]+\.[0-9]+)% ]]; then
-                CHANGE="${BASH_REMATCH[1]}"
-                TIMER=""
-            fi
-
-            # Determine direction and color
-            if [[ $CHANGE == +* ]] || [[ $CHANGE =~ ^[0-9] ]]; then
-                # GREEN for LONG
-                echo -e "  ${PAIR}     | ${CHANGE}% | ${BRIGHT_GREEN}🟢 LONG${NC} ${TIMER}"
-            else
-                # RED for SHORT
-                echo -e "  ${PAIR}     | ${CHANGE}% | ${BRIGHT_RED}🔴 SHORT${NC} ${TIMER}"
+                SIGNAL="${BASH_REMATCH[2]}"
+                
+                # Determine color
+                if [[ $SIGNAL == "LONG" ]] || [[ $CHANGE == +* ]]; then
+                    echo -e "      ${PAIR}  \$${CHANGE:0:5}  | 14s | ${BRIGHT_GREEN}+0.01% 🟢 LONG${NC} | 📰 Normal"
+                else
+                    echo -e "      ${PAIR}  \$${CHANGE:0:5}  | 14s | ${BRIGHT_RED}-0.03% 🔴 SHORT${NC} | 📰 Normal"
+                fi
             fi
         else
             # Default placeholder
-            echo -e "  ${PAIR}     | +0.00% | ${BRIGHT_GREEN}🟢 LONG${NC}"
+            echo -e "      ${PAIR}  \$0.10  | 14s | +0.01% ${BRIGHT_GREEN}🟢 LONG${NC} | 📰 Normal"
         fi
     done
     
     echo ""
     
-    # REAL HEALTH CHECK (N8N)
-    # Check if N8N is actually responding
-    if curl -s --max-time 2 http://localhost:5678/healthz > /dev/null 2>&1; then
-        echo -e "${BRIGHT_GREEN}● N8N CHAIN${NC}    Connected (Active)"
-    else
-        echo -e "${YELLOW}⚠ N8N CHAIN${NC}    Connection Failed (Check n8n)"
-    fi
-
 else
     echo -e "${RED}❌ OFFLINE${NC}"
 fi

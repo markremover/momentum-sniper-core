@@ -1,0 +1,563 @@
+{
+  "name": "Momentum Sniper V29 FINAL (EXPRESSION MODE FIX)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "momentum-trigger-new-v13",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cce81320-2175-4c46-8f6c-c43f325a522f",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        320
+      ],
+      "webhookId": "momentum-trigger-new-v13"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json[\"body\"][\"type\"] }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "PUMP_DETECTED"
+            },
+            {
+              "value2": "TRADE_RESULT",
+              "output": 1
+            },
+            {
+              "value2": "TRADE_PULSE",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "id": "ae72498c-decd-441a-b334-2a6b39f87b8d",
+      "name": "Switch Event",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://momentum-scanner:3000/trade-history",
+        "options": {}
+      },
+      "id": "9dc6b61e-cae3-4845-afe1-7ad428d1f336",
+      "name": "Read Trade History (V28)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -272,
+        80
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://cointelegraph.com/rss",
+        "options": {}
+      },
+      "id": "1ccac243-7614-4acf-8797-01799763bb87",
+      "name": "RSS Cointelegraph",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://www.coindesk.com/arc/outboundfeeds/rss/",
+        "options": {}
+      },
+      "id": "c324f027-8140-4068-9e99-25a04762de81",
+      "name": "RSS Coindesk",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        160,
+        112
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://decrypt.co/feed",
+        "options": {}
+      },
+      "id": "67ecff83-005a-4d22-a22a-28bb2d41d2ed",
+      "name": "RSS Decrypt",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        448,
+        160
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://cryptoslate.com/feed/",
+        "options": {}
+      },
+      "id": "3f938dfc-3128-483d-8096-762af18c2b0c",
+      "name": "RSS CryptoSlate",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        496
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://lunarcrush.com/api4/public/coins/' + $('Webhook').first().json.body.pair.replace('-USD','').toLowerCase() }}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "43ed2445-404c-434a-a202-ca783b272686",
+      "name": "LunarCrush (Social)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -64,
+        576
+      ],
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://news.google.com/rss/search?q=' + $('Webhook').first().json.body.pair.replace('-USD','') + '+crypto+when:1d&hl=en-US&gl=US&ceid=US:en' }}",
+        "options": {}
+      },
+      "id": "f6997364-71a9-43de-88e0-ef8f8f97314e",
+      "name": "Google News RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        144,
+        640
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {},
+      "id": "aba9e683-d555-430e-ad27-ebad7713ffde",
+      "name": "Wait for All News",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        352,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// V28.5 FIX: LUNARCRUSH API V4 FORMAT\nconst params = $('Webhook').first().json.body;\nconst ticker = params.pair.replace('-USD', '').trim();\nconst fullName = params.coin_full_name || params.coin_name || ticker;\n\n// 1. GET TRADE HISTORY (FIXED FIELD NAMES)\nlet historyStats = \"No Stats Available\";\nlet recentHistory = \"No Recent Trades\";\n\ntry {\n    const historyItem = $items(\"Read Trade History (V28)\"); \n    if (historyItem && historyItem.length > 0) {\n        const h = historyItem[0].json;\n        if (h.win_rate !== undefined) historyStats = `WR: ${h.win_rate}% | Trades: ${h.total_trades} (${h.recent_wins}W/${h.recent_losses}L)`;\n        if (h.trade_history) recentHistory = h.trade_history;\n    }\n} catch (e) {\n    historyStats = \"History Node Error\";\n}\n\n// 2. GET NEWS FROM FEEDS\nconst getFeed = (nodeName) => {\n    try {\n        return $items(nodeName).map(i => i.json).filter(i => i.title);\n    } catch (e) { return []; }\n};\n\nconst sources = ['RSS Cointelegraph', 'RSS Coindesk', 'RSS Decrypt', 'RSS CryptoSlate', 'Google News RSS'];\nlet allNews = [];\n\n// SMART SEARCH\nconst regex = new RegExp(`\\\\b(${ticker}|${fullName})\\\\b`, 'i');\n\nsources.forEach(src => {\n    const feed = getFeed(src);\n    feed.forEach(item => {\n        const text = (item.title + \" \" + (item.description || \"\")).trim();\n        if (regex.test(text)) {\n            allNews.push(`[${src.replace('RSS ', '')}] ${item.title}`);\n        }\n    });\n});\n\n// 3. LUNARCRUSH HANDLING (API V4 FORMAT)\nlet socialText = \"Social: Unavailable\";\nlet hasHype = false;\ntry {\n    const lunarItems = $items(\"LunarCrush (Social)\");\n    if (lunarItems.length > 0 && !lunarItems[0].error) {\n        const lunarData = lunarItems[0].json;\n        // API v4 response format: { coins: [ {...} ] }\n        if (lunarData.coins && lunarData.coins.length > 0) {\n            const coin = lunarData.coins[0];\n            socialText = `Social Vol: ${coin.social_volume || 0} | Rank: ${coin.alt_rank || 'N/A'} | Sentiment: ${coin.sentiment || 'N/A'}`;\n            if (coin.social_volume_calc_24h_percent && coin.social_volume_calc_24h_percent > 50) hasHype = true;\n        } else {\n            socialText = \"Social: Coin Not Found in LunarCrush\";\n        }\n    }\n} catch (e) {\n    socialText = \"Social: API Error\";\n}\n\n// 4. FINAL ASSEMBLY\nconst finalNewsContext = allNews.length > 0 ? allNews.slice(0, 15).join('\\n') : 'NO_NEWS_FOUND';\n\nreturn [{\n    json: {\n        news_context: finalNewsContext + \"\\n\\n\" + socialText,\n        news_count: allNews.length,\n        found_sources: [...new Set(allNews.map(n => n.split(']')[0].replace('[', '')))].join(', ') || 'None',\n        has_social_hype: hasHype,\n        \n        // FIXED FIELDS\n        trade_history_stats: historyStats,\n        recent_history: recentHistory,\n        \n        regex_used: regex.toString(),\n        coin_full_name: fullName\n    }\n}];"
+      },
+      "id": "27677d90-8b32-4aec-a779-375528eea633",
+      "name": "Aggregator (V28.5)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "prompt_template",
+              "value": "=IMPORTANT: YOU ARE A CRYPTO DATA PROCESSOR. DO NOT CHAT. DO NOT SAY \"OKAY\". OUTPUT ONLY RAW JSON.\\n\\nDATA TO ANALYZE:\\nAsset: {{ $json.body.pair }}\\nFull Name: {{ $json.coin_full_name }}\\nNews Context: {{ $json.news_context.replace(/\\\"/g, \\\"'\\\") }}\\nSocial Hype: {{ $json.has_social_hype }}\\nHistory: {{ $json.trade_history_stats }}\\n\\nINSTRUCTIONS:\\n1. VERIFY ENTITY: Check if news is explicitly about {{ $json.coin_full_name }} ({{ $json.body.pair }}).\\n2. FILTER NOISE: Ignore generic market news or unrelated tokens with similar names.\\n3. SCORING:\\n   - SCORE 0 (BLOCK): Irrelevant news, wrong coin, or negative sentiment.\\n   - SCORE 7-9 (BUY): Strong, specific positive news (Partnerships, Listings, Tech Upgrades).\\n   - SCORE 5 (SCALP): High Social Volume (>50%) + Generic Positive News.\\n\\nOUTPUT FORMAT (JSON ONLY, NO MARKDOWN):\\n{\\n  \\\"action\\\": \\\"BUY\\\" or \\\"BLOCK\\\",\\n  \\\"confidence\\\": 0-100,\\n  \\\"news_score\\\": 0-10,\\n  \\\"mode\\\": \\\"SCALP\\\" or \\\"MOON\\\",\\n  \\\"reason\\\": \\\"Concise reason < 15 words\\\"\\n}\\n\\nANALYZE NOW. RETURN ONLY THE JSON OBJECT."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c39ef021-66ba-4835-b9a8-89b09714ca13",
+      "name": "Set Prompt (V26)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        736,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents",
+              "value": "={{ [{\"parts\": [{\"text\": $json.prompt_template}]}] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fdd0859d-bbfc-4471-8437-cbe73ef54308",
+      "name": "Consult Gemini (Catalyst)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        896,
+        368
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "mhgL97XxVpCJHnfi",
+          "name": "Query Auth account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// V29 FINAL PARSER (SANITIZED & ENGLISH ONLY)\nconst geminiRaw = $json.candidates[0].content.parts[0].text;\n\n// 1. EXTRACT & SANITIZE JSON\nlet result;\ntry {\n    // Find the JSON block between curly braces\n    const match = geminiRaw.match(/\\{[\\s\\S]*\\}/);\n    if (match) {\n        // Sanitize the string to fix common AI formatting errors\n        const cleanString = match[0]\n            .replace(/,\\s*}/g, '}')      // Remove trailing commas\n            .replace(/[\\n\\r\\t]/g, ' ');  // Remove line breaks inside values\n            \n        result = JSON.parse(cleanString);\n    } else {\n        throw new Error(\"No JSON block found\");\n    }\n} catch (e) {\n    // Fallback object to prevent workflow crash\n    result = { \n        action: 'BLOCK', \n        confidence: 0, \n        reason: 'Gemini Format Error (Sanitized): ' + e.message \n    };\n}\n\n// 2. FILL MISSING FIELDS\n// Ensure mandatory fields exist for Telegram reporting\nif (result.news_score === undefined) result.news_score = result.tier || 0;\n\n// 3. SILENT WHALE KICKER (High Volume Override)\ntry {\n    const signal = $node[\"Webhook\"] ? $node[\"Webhook\"].json.body : {};\n    const VOLUME_THRESHOLD = 10000000; // $10M Threshold\n\n    // If news is bad but volume is huge, override to BUY (Scalp Mode)\n    if (result.news_score === 0 || result.action === 'BLOCK') {\n        if (signal && signal.volume_24h > VOLUME_THRESHOLD) {\n            result.action = 'BUY';\n            result.confidence = 85;\n            result.mode = 'SCALP';\n            result.reason = `SILENT WHALE KICKER: Vol $${(signal.volume_24h/1e6).toFixed(1)}M > $10M implies Insider Move.`;\n            result.whale_override = true;\n        }\n    }\n} catch (e) {\n    // Ignore logic errors to keep the flow alive\n}\n\nreturn [{ json: result }];"
+      },
+      "id": "d3ee4f8c-1347-46fc-b639-f46a3e4ccac5",
+      "name": "Parse (V28.2)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "da375432-b910-4de5-9428-8b5a154767b6",
+      "name": "Respond (Pump Analysis)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "prompt_template",
+              "value": "RE-EVALUATION PULSE (HYBRID):\nPair: {{ $json.body.pair }}\nPnL: {{ $json.body.pnl }}%\n..."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "51cd20b3-32fe-4d64-abd0-f1a24769e544",
+      "name": "Set Config (Pulse)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        560,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents",
+              "value": "={{ [{\"parts\": [{\"text\": $json.prompt_template}]}] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d0f9a7b7-9a0e-4f48-8e67-ec015cdeae6f",
+      "name": "Consult Gemini (Pulse)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        720,
+        576
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "mhgL97XxVpCJHnfi",
+          "name": "Query Auth account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.parse($json[\"candidates\"][0][\"content\"][\"parts\"][0][\"text\"].replace(/```json/g, \"\").replace(/```/g, \"\")) }}",
+        "options": {}
+      },
+      "id": "f38bc288-f846-4538-8343-e5f023ffd47c",
+      "name": "Respond (Pulse)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        896,
+        576
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Event": {
+      "main": [
+        [
+          {
+            "node": "Read Trade History (V28)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS Cointelegraph",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS Coindesk",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS Decrypt",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS CryptoSlate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google News RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "LunarCrush (Social)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [
+          {
+            "node": "Set Config (Pulse)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Trade History (V28)": {
+      "main": [
+        [
+          {
+            "node": "Wait for All News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Cointelegraph": {
+      "main": [
+        [
+          {
+            "node": "Wait for All News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Coindesk": {
+      "main": [
+        [
+          {
+            "node": "Wait for All News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Decrypt": {
+      "main": [
+        [
+          {
+            "node": "Wait for All News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS CryptoSlate": {
+      "main": [
+        [
+          {
+            "node": "Wait for All News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google News RSS": {
+      "main": [
+        [
+          {
+            "node": "Wait for All News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LunarCrush (Social)": {
+      "main": [
+        [
+          {
+            "node": "Wait for All News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Prompt (V26)": {
+      "main": [
+        [
+          {
+            "node": "Consult Gemini (Catalyst)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consult Gemini (Catalyst)": {
+      "main": [
+        [
+          {
+            "node": "Parse (V28.2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse (V28.2)": {
+      "main": [
+        [
+          {
+            "node": "Respond (Pump Analysis)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config (Pulse)": {
+      "main": [
+        [
+          {
+            "node": "Consult Gemini (Pulse)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consult Gemini (Pulse)": {
+      "main": [
+        [
+          {
+            "node": "Respond (Pulse)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for All News": {
+      "main": [
+        [
+          {
+            "node": "Aggregator (V28.5)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregator (V28.5)": {
+      "main": [
+        [
+          {
+            "node": "Set Prompt (V26)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ed85da03-3aee-459c-8dfa-4543e504e7f7",
+  "meta": {
+    "instanceId": "dbc77a83d2b4b81619f9b25f03d3eb04bad62bf94cb1838a3d14a7b99cb0d36c"
+  },
+  "id": "lzvI3MnqL39O52UNts7gn",
+  "tags": []
+}
