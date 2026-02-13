@@ -125,9 +125,17 @@ if docker ps | grep -q "futures-oracle"; then
     echo -e "${BRIGHT_GREEN}✅ ACTIVE${NC} (Container: futures-oracle | Version: ${ORACLE_VERSION})"
     echo "   Status: Up ${UPTIME_ORACLE}"
     
+    # N8N CONNECTION CHECK FOR ORACLE
+    if curl -s --max-time 2 http://localhost:5678/healthz > /dev/null 2>&1; then
+        echo -e "   Health: ${BRIGHT_GREEN}🟢 N8N CHAIN Connected (Active)${NC}"
+    else
+        echo -e "   Health: ${YELLOW}⚠ N8N Connection Lost${NC}"
+    fi
+    
     # Get logs for monitored pairs: ETH, DOGE, SOL, SUI, XRP
     PAIRS=("XRP-USD" "SUI-USD" "DOGE-USD")
     
+    echo ""
     echo -e "   ${YELLOW}Recent Logs:${NC}"
     for PAIR in "${PAIRS[@]}"; do
         # Try to find this pair in logs - Get LAST occurrence
@@ -135,20 +143,20 @@ if docker ps | grep -q "futures-oracle"; then
         
         if [ -n "$PAIR_LOG" ]; then
             # Regex to capture: 1=Change, 2=Signal Type
-            if [[ $PAIR_LOG =~ ([+-]?[0-9]+\.[0-9]+)%.*(LONG|SHORT|Normal) ]]; then
+            if [[ $PAIR_LOG =~ ([+-]?[0-9]+\.[0-9]+)%.*(LONG|SHORT) ]]; then
                 CHANGE="${BASH_REMATCH[1]}"
                 SIGNAL="${BASH_REMATCH[2]}"
                 
                 # Determine color
                 if [[ $SIGNAL == "LONG" ]] || [[ $CHANGE == +* ]]; then
-                    echo -e "      ${PAIR}  \$${CHANGE:0:5}  | 14s | ${BRIGHT_GREEN}+0.01% 🟢 LONG${NC} | 📰 Normal"
+                    echo -e "      ${PAIR}  \$${CHANGE:0:5}  | 14s | ${BRIGHT_GREEN}+0.01% 🟢 LONG${NC}"
                 else
-                    echo -e "      ${PAIR}  \$${CHANGE:0:5}  | 14s | ${BRIGHT_RED}-0.03% 🔴 SHORT${NC} | 📰 Normal"
+                    echo -e "      ${PAIR}  \$${CHANGE:0:5}  | 14s | ${BRIGHT_RED}-0.03% 🔴 SHORT${NC}"
                 fi
             fi
         else
             # Default placeholder
-            echo -e "      ${PAIR}  \$0.10  | 14s | +0.01% ${BRIGHT_GREEN}🟢 LONG${NC} | 📰 Normal"
+            echo -e "      ${PAIR}  \$0.10  | 14s | ${BRIGHT_GREEN}+0.01% 🟢 LONG${NC}"
         fi
     done
     
