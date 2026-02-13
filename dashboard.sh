@@ -83,7 +83,13 @@ if [ -z "$ORACLE_ID" ]; then
     ORACLE_ID="futures-oracle"
 fi
 
-echo -e "${YELLOW}${BOLD}FUTURES ORACLE V23.4 (Hybrid Whale)${NC}"
+# Auto-detect version from package.json
+ORACLE_VERSION="Unknown"
+if [ -f "/home/karmez1988/futures-oracle/package.json" ]; then
+    ORACLE_VERSION=$(grep '"version"' /home/karmez1988/futures-oracle/package.json | head -1 | sed 's/.*: "\(.*\)".*/\1/')
+fi
+
+echo -e "${YELLOW}${BOLD}FUTURES ORACLE V${ORACLE_VERSION} (News Filter Enhanced)${NC}"
 echo ""
 
 if docker ps | grep -q "futures-oracle"; then
@@ -130,10 +136,10 @@ if docker ps | grep -q "futures-oracle"; then
     
     # REAL HEALTH CHECK (N8N)
     # Check if N8N is actually responding
-    if curl -s --max-time 2 http://localhost:5678/healthz > /dev/null; then
+    if curl -s --max-time 2 http://localhost:5678/healthz > /dev/null 2>&1; then
         echo -e "${BRIGHT_GREEN}● N8N CHAIN${NC}    Connected (Active)"
     else
-        echo -e "${BRIGHT_RED}● N8N CHAIN${NC}    Connection Failed (N8N Down)"
+        echo -e "${YELLOW}⚠ N8N CHAIN${NC}    Connection Failed (Check n8n)"
     fi
 
 else
