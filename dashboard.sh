@@ -27,12 +27,6 @@ fi
 
 clear
 echo ""
-echo -e "${YELLOW}======================================================${NC}"
-echo -e "${YELLOW}  🚀 ANTIGRAVITY COMMAND CENTER 🚀  ${NC}"
-echo -e "${YELLOW}======================================================${NC}"
-echo ""
-
-# SERVER TIME
 echo -e "Server Time: $(TZ='America/Los_Angeles' date '+%Y-%m-%d %H:%M:%S %p')"
 echo ""
 
