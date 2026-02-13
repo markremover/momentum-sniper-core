@@ -126,8 +126,8 @@ if docker ps | grep -q "futures-oracle"; then
         echo -e "   Health: ${YELLOW}⚠ N8N Connection Lost${NC}"
     fi
     
-    # Get logs for monitored pairs: ETH, DOGE, SOL, SUI, XRP
-    PAIRS=("XRP-USD" "SUI-USD" "DOGE-USD")
+    # Get logs for monitored pairs: XRP, SUI, DOGE, ETH, SOL
+    PAIRS=("XRP-USD" "SUI-USD" "DOGE-USD" "ETH-USD" "SOL-USD")
     
     echo ""
     echo -e "   ${YELLOW}Recent Logs:${NC}"
