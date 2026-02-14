@@ -9,6 +9,7 @@ RUN npm install
 # Build the app
 COPY tsconfig.json ./
 COPY src ./src
+COPY dashboard ./dashboard
 RUN npm run build
 
 # Production image
