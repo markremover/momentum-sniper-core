@@ -28,7 +28,7 @@ services:
   scanner:
     build: .
     container_name: momentum-scanner
-    restart: always
+    restart: unless-stopped
     depends_on:
       - n8n
     env_file:

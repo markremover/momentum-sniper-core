@@ -4,7 +4,7 @@ import { ApiServer } from './api_server';
 async function main() {
     console.log('Starting Momentum Sniper - Black Terminal...');
     const scanner = new MomentumScanner();
-    new ApiServer(3000);
+    new ApiServer(3000, scanner);
     await scanner.start();
 }
 

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Momentum Sniper Dashboard</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #58a6ff;
+            text-align: center;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 10px;
+        }
+
+        .card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .metric-label {
+            color: #8b949e;
+        }
+
+        .metric-value {
+            font-weight: bold;
+        }
+
+        .status-online {
+            color: #2ea043;
+        }
+
+        .status-offline {
+            color: #da3633;
+        }
+
+        .pnl-positive {
+            color: #2ea043;
+        }
+
+        .pnl-negative {
+            color: #da3633;
+        }
+
+        #last-updated {
+            text-align: center;
+            font-size: 0.8em;
+            color: #8b949e;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚀 Momentum Sniper Dashboard</h1>
+
+        <div class="card">
+            <div class="metric-row">
+                <span class="metric-label">System Status:</span>
+                <span id="system-status" class="metric-value">LOADING...</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Version:</span>
+                <span id="version" class="metric-value">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Uptime:</span>
+                <span id="uptime" class="metric-value">-</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="metric-row">
+                <span class="metric-label">Active Positions:</span>
+                <span id="active-positions" class="metric-value">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Day PnL:</span>
+                <span id="day-pnl" class="metric-value">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Last Signal:</span>
+                <span id="last-signal" class="metric-value">-</span>
+            </div>
+        </div>
+
+        <div id="last-updated">Last Updated: <span id="timestamp">-</span></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>

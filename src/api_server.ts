@@ -1,13 +1,57 @@
-
 import * as http from 'http';
+import * as fs from 'fs';
+import * as path from 'path';
 import { runAnalysis } from './market_analyzer';
+import { MomentumScanner } from './scanner';
 
 export class ApiServer {
     private server: http.Server;
+    private scanner: MomentumScanner;
 
-    constructor(port: number = 3000) {
+    constructor(port: number = 3000, scanner: MomentumScanner) {
+        this.scanner = scanner;
         this.server = http.createServer((req, res) => {
-            if (req.method === 'POST' && req.url === '/analyze') {
+            // Enable CORS for dashboard
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+
+            if (req.method === 'GET' && req.url === '/health') {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    status: "ok",
+                    version: process.env.VERSION || "unknown",
+                    uptime: process.uptime(),
+                    timestamp: new Date().toISOString()
+                }));
+            } else if (req.method === 'GET' && req.url === '/metrics') {
+                const metrics = this.scanner.getMetrics();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(metrics));
+            } else if (req.method === 'GET' && (req.url === '/dashboard' || req.url === '/dashboard/')) {
+                // Serve index.html
+                const filePath = path.join(__dirname, '../dashboard/index.html');
+                fs.readFile(filePath, (err, data) => {
+                    if (err) {
+                        res.writeHead(500);
+                        res.end('Error loading dashboard');
+                    } else {
+                        res.writeHead(200, { 'Content-Type': 'text/html' });
+                        res.end(data);
+                    }
+                });
+            } else if (req.method === 'GET' && req.url === '/dashboard/script.js') {
+                // Serve script.js
+                const filePath = path.join(__dirname, '../dashboard/script.js');
+                fs.readFile(filePath, (err, data) => {
+                    if (err) {
+                        res.writeHead(500);
+                        res.end('Error loading script');
+                    } else {
+                        res.writeHead(200, { 'Content-Type': 'application/javascript' });
+                        res.end(data);
+                    }
+                });
+            } else if (req.method === 'POST' && req.url === '/analyze') {
                 console.log('[API] Received Analysis Request');
 
                 // Trigger Async Analysis

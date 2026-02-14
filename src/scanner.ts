@@ -88,6 +88,26 @@ export class MomentumScanner {
         }
     }
 
+    public getMetrics() {
+        const activeTrades = Array.from(this.products.values()).filter(p => p.activeTrade).length;
+        // Find latest trigger time
+        let lastSignalTime = "N/A";
+        let maxTime = 0;
+        for (const p of this.products.values()) {
+            if (p.lastTrigger > maxTime) maxTime = p.lastTrigger;
+        }
+        if (maxTime > 0) {
+            lastSignalTime = new Date(maxTime).toISOString();
+        }
+
+        return {
+            activePositions: activeTrades,
+            lastSignalTime: lastSignalTime,
+            dayPnL: this.dailyStats.totalPnL,
+            systemStatus: this.isAlive ? "ONLINE" : "OFFLINE"
+        };
+    }
+
     private connect() {
         const url = CONFIG.COINBASE.WS_URL;
         const VERSION = 'V23.5 (CLEAN & SENSITIVE)';
