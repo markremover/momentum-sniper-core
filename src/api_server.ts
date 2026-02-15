@@ -39,7 +39,7 @@ export class ApiServer {
                         res.end(data);
                     }
                 });
-            } else if (req.method === 'GET' && req.url === '/dashboard/script.js') {
+            } else if (req.method === 'GET' && (req.url === '/dashboard/script.js' || req.url === '/script.js')) {
                 // Serve script.js
                 const filePath = path.join(__dirname, '../dashboard/script.js');
                 fs.readFile(filePath, (err, data) => {
