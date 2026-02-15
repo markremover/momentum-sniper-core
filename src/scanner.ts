@@ -448,24 +448,18 @@ export class MomentumScanner {
             const oldest = state.history[0];
             const percentChange = ((currentPrice - oldest.price) / oldest.price) * 100;
 
-            // V31.2: MARKET WATCH LOGIC (>3%)
-            if (percentChange >= 3.0) {
+            // V31.3: MARKET WATCH - ALWAYS TRACK MOVERS (No Threshold for UI)
+            // User requirement: "3 logs must always be visible"
+            if (percentChange > 0) {
                 this.hotlist.set(product_id, {
                     price: currentPrice,
                     change: percentChange,
                     volume: currentVolumeUSD,
                     time: now
                 });
-
-                // Diagnostic Log (throttle to avoid spam?)
-                // console.log(`[WATCH] ${product_id} +${percentChange.toFixed(2)}%`);
-            } else {
-                // Remove if it fell below 3%
-                if (this.hotlist.has(product_id)) {
-                    this.hotlist.delete(product_id);
-                }
             }
 
+            // Diagnostic Log (Keep threshold for console noise)
             if (percentChange >= 3.0) {
                 const lowVolTag = currentVolumeUSD < this.VOLUME_FLOOR_USD ? " (LOW VOL)" : "";
                 console.log(`[DIAGNOSTIC] ${product_id} is moving! +${percentChange.toFixed(2)}% | Vol: $${(currentVolumeUSD / 1e6).toFixed(2)}M${lowVolTag}`);
