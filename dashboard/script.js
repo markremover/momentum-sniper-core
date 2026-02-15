@@ -23,6 +23,25 @@ function updateDashboard() {
             statusEl.innerText = data.systemStatus;
             statusEl.className = 'metric-value ' + (data.systemStatus === 'ONLINE' ? 'status-online' : 'status-offline');
 
+            // N8N Status
+            const n8nEl = document.getElementById('n8n-status');
+            if (data.n8nStatus) {
+                n8nEl.innerText = data.n8nStatus; // CONNECTED / DISCONNECTED
+                n8nEl.className = 'metric-value ' + (data.n8nStatus === 'CONNECTED' ? 'status-online' : 'status-offline');
+            }
+
+            // Version (Fallback if not in health)
+            if (data.version && document.getElementById('version').innerText === '-') {
+                document.getElementById('version').innerText = data.version;
+            }
+
+            // Config
+            if (data.config) {
+                document.getElementById('cfg-threshold').innerText = data.config.threshold + '%';
+                document.getElementById('cfg-window').innerText = data.config.window + 'm';
+                document.getElementById('cfg-volume').innerText = '$' + (data.config.volumeFloor / 1000).toFixed(0) + 'k';
+            }
+
             // Active Positions
             document.getElementById('active-positions').innerText = data.activePositions;
 
@@ -37,6 +56,26 @@ function updateDashboard() {
             } else {
                 const date = new Date(data.lastSignalTime);
                 document.getElementById('last-signal').innerText = date.toLocaleTimeString();
+            }
+
+            // Recent Signals Table
+            const tableBody = document.querySelector('#signals-table tbody');
+            if (data.recentSignals && data.recentSignals.length > 0) {
+                tableBody.innerHTML = ''; // Clear loading/old rows
+                data.recentSignals.forEach(sig => {
+                    const row = document.createElement('tr');
+                    const volFormatted = '$' + (sig.volume / 1000000).toFixed(2) + 'M';
+                    const timeFormatted = new Date(sig.time).toLocaleTimeString();
+
+                    row.innerHTML = `
+                        <td style="font-weight:bold; color:#00ff9d;">${sig.coin}</td>
+                        <td>${volFormatted}</td>
+                        <td>${timeFormatted}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#555;">No signals yet today</td></tr>';
             }
         })
         .catch(err => console.error('Error fetching metrics:', err));

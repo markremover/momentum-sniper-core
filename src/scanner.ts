@@ -56,6 +56,7 @@ export class MomentumScanner {
     private tradeHistory: TradeHistory = new TradeHistory();  // V19: Trade logging
     private dailyStats: DailyStats = { date: '', wins: 0, losses: 0, totalPnL: 0 };
     private globalCooldowns: Map<string, number> = new Map(); // GLOBAL BAN LIST 🛑
+    private n8nStatus: boolean = false; // V30.2: N8N Connectivity Status
 
     // Constants
     private readonly WINDOW_MS = CONFIG.SCANNER.TIME_WINDOW_MINUTES * 60 * 1000;
@@ -71,6 +72,8 @@ export class MomentumScanner {
 
     public async start() {
         this.connect();
+        this.checkN8NStatus(); // Initial check
+
         setInterval(() => {
             if (this.isAlive) {
                 this.cleanupOldData();
@@ -78,7 +81,27 @@ export class MomentumScanner {
                 const activeTrades = Array.from(this.products.values()).filter(p => p.activeTrade).length;
                 console.log(`[HEARTBEAT] Pairs: ${this.products.size} | Active: ${activeTrades} | Day PnL: ${this.dailyStats.totalPnL.toFixed(2)}%`);
             }
+            this.checkN8NStatus(); // Periodic check every 30s (piggyback on cleanup)
         }, 30000);
+    }
+
+    private async checkN8NStatus() {
+        try {
+            // Simple ping to N8N (using the health endpoint if available, or just root)
+            // Since N8N doesn't have a simple public health without auth usually, we check if port is open or webhook accepts
+            // Using the webhook URL but without payload might return 400 or 404, which implies "Online"
+            // Better: just check if the host is reachable. 
+            // We will assume "Online" if we get ANY response (even error) from the webhook URL.
+            await axios.get(CONFIG.N8N.WEBHOOK_URL, { timeout: 2000 });
+            this.n8nStatus = true;
+        } catch (error: any) {
+            // If connection refused or timeout -> Offline. If 404/400/401 -> Online (Server is there)
+            if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+                this.n8nStatus = false;
+            } else {
+                this.n8nStatus = true; // Server responded (even with error)
+            }
+        }
     }
 
     private resetDailyStats() {
@@ -104,8 +127,32 @@ export class MomentumScanner {
             activePositions: activeTrades,
             lastSignalTime: lastSignalTime,
             dayPnL: this.dailyStats.totalPnL,
-            systemStatus: this.isAlive ? "ONLINE" : "OFFLINE"
+            systemStatus: this.isAlive ? "ONLINE" : "OFFLINE",
+            n8nStatus: this.n8nStatus ? "CONNECTED" : "DISCONNECTED",
+            version: process.env.VERSION || "unknown",
+            config: {
+                threshold: CONFIG.SCANNER.PRICE_CHANGE_THRESHOLD,
+                window: CONFIG.SCANNER.TIME_WINDOW_MINUTES,
+                volumeFloor: 500000
+            },
+            recentSignals: this.getRecentSignals()
         };
+    }
+
+    private getRecentSignals() {
+        // Return top 5 most recent signals based on lastTrigger
+        const signals = [];
+        for (const [coin, state] of this.products.entries()) {
+            if (state.lastTrigger > 0) {
+                signals.push({
+                    coin: coin,
+                    time: state.lastTrigger,
+                    volume: state.baseVolume
+                });
+            }
+        }
+        // Sort descending by time
+        return signals.sort((a, b) => b.time - a.time).slice(0, 5);
     }
 
     private connect() {

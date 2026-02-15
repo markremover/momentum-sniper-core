@@ -71,44 +71,136 @@
             color: #8b949e;
             margin-top: 20px;
         }
+
+        .status-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .config-item {
+            text-align: center;
+        }
+
+        .config-label {
+            font-size: 0.8em;
+            color: #888;
+        }
+
+        .config-value {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #aaa;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #333;
+        }
+
+        th {
+            color: #888;
+        }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>🚀 Momentum Sniper Dashboard</h1>
+    <div class="dashboard-container">
+        <div class="header">
+            <span class="icon">🚀</span> Momentum Sniper Dashboard
+        </div>
 
-        <div class="card">
-            <div class="metric-row">
-                <span class="metric-label">System Status:</span>
-                <span id="system-status" class="metric-value">LOADING...</span>
+        <div class="status-container">
+            <div class="metric-card">
+                <div class="metric-label">System Status</div>
+                <div class="metric-value" id="system-status">LOADING...</div>
             </div>
-            <div class="metric-row">
-                <span class="metric-label">Version:</span>
-                <span id="version" class="metric-value">-</span>
-            </div>
-            <div class="metric-row">
-                <span class="metric-label">Uptime:</span>
-                <span id="uptime" class="metric-value">-</span>
+            <div class="metric-card">
+                <div class="metric-label">N8N Connection</div>
+                <div class="metric-value" id="n8n-status">Checking...</div>
             </div>
         </div>
 
         <div class="card">
             <div class="metric-row">
-                <span class="metric-label">Active Positions:</span>
-                <span id="active-positions" class="metric-value">-</span>
+                <div class="metric-label">Version:</div>
+                <div class="metric-value-small" id="version">-</div>
             </div>
             <div class="metric-row">
-                <span class="metric-label">Day PnL:</span>
-                <span id="day-pnl" class="metric-value">-</span>
-            </div>
-            <div class="metric-row">
-                <span class="metric-label">Last Signal:</span>
-                <span id="last-signal" class="metric-value">-</span>
+                <div class="metric-label">Uptime:</div>
+                <div class="metric-value-small" id="uptime">-</div>
             </div>
         </div>
 
-        <div id="last-updated">Last Updated: <span id="timestamp">-</span></div>
+        <div class="config-grid">
+            <div class="config-item">
+                <div class="config-label">Threshold</div>
+                <div class="config-value" id="cfg-threshold">-</div>
+            </div>
+            <div class="config-item">
+                <div class="config-label">Window</div>
+                <div class="config-value" id="cfg-window">-</div>
+            </div>
+            <div class="config-item">
+                <div class="config-label">Min Volume</div>
+                <div class="config-value" id="cfg-volume">-</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="metric-row">
+                <div class="metric-label">Active Positions:</div>
+                <div class="metric-value" id="active-positions">-</div>
+            </div>
+            <div class="metric-row">
+                <div class="metric-label">Day PnL:</div>
+                <div class="metric-value" id="day-pnl">-</div>
+            </div>
+            <div class="metric-row">
+                <div class="metric-label">Last Signal:</div>
+                <div class="metric-value" id="last-signal">-</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="metric-label" style="margin-bottom: 10px;">Recent Signals (Last 5)</div>
+            <table id="signals-table">
+                <thead>
+                    <tr>
+                        <th>Pair</th>
+                        <th>Volume (24h)</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="3">Waiting for data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            Last Updated: <span id="timestamp">-</span>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>

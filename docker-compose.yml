@@ -37,6 +37,7 @@ services:
       - "3001:3000"
     environment:
       - N8N_WEBHOOK_URL=http://n8n:5678/webhook/momentum-trigger-new-v13
+      - VERSION=V30.2
     volumes:
       - ./data:/data # V19: Mount only data dir for trade_history.json
     deploy:
