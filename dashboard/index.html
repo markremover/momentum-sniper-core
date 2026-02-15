@@ -7,68 +7,109 @@
     <title>Momentum Sniper Dashboard</title>
     <style>
         body {
-            font-family: 'Courier New', Courier, monospace;
-            background-color: #0d1117;
-            color: #c9d1d9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000000; /* Deep Black */
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
             margin: 0;
-            padding: 20px;
         }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            color: #58a6ff;
+        .dashboard-container {
+            background-color: #050505; /* Almost Black */
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 25px rgba(57, 255, 20, 0.15); /* Neon Glow */
+            width: 450px;
             text-align: center;
-            border-bottom: 1px solid #30363d;
-            padding-bottom: 10px;
+            border: 1px solid #1a1a1a;
+        }
+
+        .header {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .metric-card {
+            background: #000000;
+            padding: 15px;
+            border-radius: 8px;
+            width: 45%;
+            border: 1px solid #333;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .metric-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .metric-value-small {
+             font-size: 1.1em;
+             color: #ccc;
+             font-family: 'Consolas', monospace;
+        }
+
+        .status-online {
+            color: #39ff14 !important; /* Toxic Neon Green */
+            text-shadow: 0 0 8px rgba(57, 255, 20, 0.5);
+        }
+
+        .status-offline {
+            color: #ff003c !important; /* Cyberpunk Red */
+            text-shadow: 0 0 8px rgba(255, 0, 60, 0.5);
+        }
+
+        .pnl-positive {
+            color: #39ff14 !important;
+        }
+
+        .pnl-negative {
+            color: #ff003c !important;
         }
 
         .card {
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 15px;
+            background-color: #000000;
+            padding: 20px;
+            border-radius: 10px;
             margin-bottom: 20px;
+            border: 1px solid #222;
         }
 
         .metric-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 1.2em;
+            align-items: center;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #1a1a1a;
+            padding-bottom: 8px;
+        }
+        
+        .metric-row:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+            padding-bottom: 0;
         }
 
-        .metric-label {
-            color: #8b949e;
-        }
-
-        .metric-value {
-            font-weight: bold;
-        }
-
-        .status-online {
-            color: #2ea043;
-        }
-
-        .status-offline {
-            color: #da3633;
-        }
-
-        .pnl-positive {
-            color: #2ea043;
-        }
-
-        .pnl-negative {
-            color: #da3633;
-        }
-
-        #last-updated {
-            text-align: center;
+        .footer {
             font-size: 0.8em;
-            color: #8b949e;
+            color: #555;
             margin-top: 20px;
         }
 
@@ -83,9 +124,10 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 10px;
             margin-bottom: 20px;
-            background: #1e1e1e;
+            background: #000000;
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 10px;
+            border: 1px solid #222;
         }
 
         .config-item {
@@ -93,14 +135,15 @@
         }
 
         .config-label {
-            font-size: 0.8em;
-            color: #888;
+            font-size: 0.75em;
+            color: #666;
+            text-transform: uppercase;
         }
 
         .config-value {
             font-size: 1.1em;
             font-weight: bold;
-            color: #aaa;
+            color: #ddd;
         }
 
         table {
@@ -109,15 +152,21 @@
             margin-top: 10px;
         }
 
-        th,
-        td {
+        th, td {
             text-align: left;
             padding: 8px;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid #222;
+            font-size: 0.9em;
         }
 
         th {
-            color: #888;
+            color: #666;
+            text-transform: uppercase;
+            font-size: 0.75em;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
         }
     </style>
 </head>
