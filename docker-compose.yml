@@ -21,6 +21,8 @@ services:
     dns:
       - 8.8.8.8
       - 1.1.1.1
+    networks:
+      - momentum_net
     volumes:
       # Bind mount current directory ./n8n_data to container
       - ./n8n_data:/home/node/.n8n
@@ -31,13 +33,15 @@ services:
     restart: unless-stopped
     depends_on:
       - n8n
+    networks:
+      - momentum_net
     env_file:
       - .env
     ports:
       - "3001:3000"
     environment:
       - N8N_WEBHOOK_URL=http://n8n:5678/webhook/momentum-trigger-new-v13
-      - VERSION=V30.2
+      - VERSION=V31.0
     volumes:
       - ./data:/data # V19: Mount only data dir for trade_history.json
     deploy:
@@ -47,3 +51,7 @@ services:
         reservations:
           memory: 400M
     mem_swappiness: 60
+
+networks:
+  momentum_net:
+    driver: bridge
