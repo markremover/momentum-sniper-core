@@ -92,7 +92,7 @@ export class MomentumScanner {
             // Using the webhook URL but without payload might return 400 or 404, which implies "Online"
             // Better: just check if the host is reachable. 
             // We will assume "Online" if we get ANY response (even error) from the webhook URL.
-            await axios.get(CONFIG.N8N.WEBHOOK_URL, { timeout: 2000 });
+            await axios.get(CONFIG.N8N.WEBHOOK_URL, { timeout: 3000 });
             this.n8nStatus = true;
         } catch (error: any) {
             // If connection refused or timeout -> Offline. If 404/400/401 -> Online (Server is there)
