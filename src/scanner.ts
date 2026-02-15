@@ -57,6 +57,7 @@ export class MomentumScanner {
     private dailyStats: DailyStats = { date: '', wins: 0, losses: 0, totalPnL: 0 };
     private globalCooldowns: Map<string, number> = new Map(); // GLOBAL BAN LIST 🛑
     private n8nStatus: boolean = false; // V30.2: N8N Connectivity Status
+    private hotlist: Map<string, { price: number, change: number, volume: number, time: number }> = new Map(); // V31.2: Market Watch > 3%
 
     // Constants
     private readonly WINDOW_MS = CONFIG.SCANNER.TIME_WINDOW_MINUTES * 60 * 1000;
@@ -135,7 +136,8 @@ export class MomentumScanner {
                 window: CONFIG.SCANNER.TIME_WINDOW_MINUTES,
                 volumeFloor: 500000
             },
-            recentSignals: this.getRecentSignals()
+            recentSignals: this.getRecentSignals(),
+            marketWatch: this.getMarketWatch() // V31.2: Top Movers > 3%
         };
     }
 
@@ -153,6 +155,14 @@ export class MomentumScanner {
         }
         // Sort descending by time
         return signals.sort((a, b) => b.time - a.time).slice(0, 5);
+    }
+
+    private getMarketWatch() {
+        // V31.2: Return Top 5 Movers from Hotlist sorted by % Change
+        return Array.from(this.hotlist.entries())
+            .map(([coin, data]) => ({ coin, ...data }))
+            .sort((a, b) => b.change - a.change)
+            .slice(0, 10);
     }
 
     private connect() {
@@ -437,6 +447,25 @@ export class MomentumScanner {
         if (state.history.length > 0) {
             const oldest = state.history[0];
             const percentChange = ((currentPrice - oldest.price) / oldest.price) * 100;
+
+            // V31.2: MARKET WATCH LOGIC (>3%)
+            if (percentChange >= 3.0) {
+                this.hotlist.set(product_id, {
+                    price: currentPrice,
+                    change: percentChange,
+                    volume: currentVolumeUSD,
+                    time: now
+                });
+
+                // Diagnostic Log (throttle to avoid spam?)
+                // console.log(`[WATCH] ${product_id} +${percentChange.toFixed(2)}%`);
+            } else {
+                // Remove if it fell below 3%
+                if (this.hotlist.has(product_id)) {
+                    this.hotlist.delete(product_id);
+                }
+            }
+
             if (percentChange >= 3.0) {
                 const lowVolTag = currentVolumeUSD < this.VOLUME_FLOOR_USD ? " (LOW VOL)" : "";
                 console.log(`[DIAGNOSTIC] ${product_id} is moving! +${percentChange.toFixed(2)}% | Vol: $${(currentVolumeUSD / 1e6).toFixed(2)}M${lowVolTag}`);
@@ -602,9 +631,19 @@ export class MomentumScanner {
         // V23.5: Extend Window to 25 mins to ensure we capture the 20m trigger
         const cutoff = now - (25 * 60 * 1000);
         for (const [pid, state] of this.products) {
-            state.history = state.history.filter(c => c.time > cutoff);
+            const cutoff = now - (25 * 60 * 1000);
+            for (const [pid, state] of this.products) {
+                state.history = state.history.filter(c => c.time > cutoff);
+            }
+
+            // V31.2: Cleanup Hotlist (Remove stale entries > 10m old)
+            const hotlistCutoff = now - (10 * 60 * 1000);
+            for (const [coin, data] of this.hotlist) {
+                if (data.time < hotlistCutoff) {
+                    this.hotlist.delete(coin);
+                }
+            }
         }
-    }
 
     private async triggerAlert(pair: string, price: number, change: number, volume: number, tp: number, sl: number, signalId: string): Promise<{ approved: boolean, confidence: number, predictedExit: number, mode: 'SCALP' | 'MOON', newsTier: number, slOverride?: number, whaleOverride?: boolean, newsSources?: string }> {
         try {

@@ -58,24 +58,28 @@ function updateDashboard() {
                 document.getElementById('last-signal').innerText = date.toLocaleTimeString();
             }
 
-            // Recent Signals Table
+            // V31.2: Live Market Watch Table (>3%)
             const tableBody = document.querySelector('#signals-table tbody');
-            if (data.recentSignals && data.recentSignals.length > 0) {
+            const dataList = data.marketWatch || data.recentSignals; // Fallback
+
+            if (dataList && dataList.length > 0) {
                 tableBody.innerHTML = ''; // Clear loading/old rows
-                data.recentSignals.forEach(sig => {
+                dataList.forEach(item => {
                     const row = document.createElement('tr');
-                    const volFormatted = '$' + (sig.volume / 1000000).toFixed(2) + 'M';
-                    const timeFormatted = new Date(sig.time).toLocaleTimeString();
+                    const volFormatted = '$' + (item.volume / 1000000).toFixed(2) + 'M';
+                    const timeFormatted = new Date(item.time).toLocaleTimeString();
+                    const changeFormatted = item.change ? `+${item.change.toFixed(2)}%` : 'SIGNAL'; // Handle both formats
 
                     row.innerHTML = `
-                        <td style="font-weight:bold; color:#00ff9d;">${sig.coin}</td>
+                        <td style="font-weight:bold; color:#00ff9d;">${item.coin}</td>
+                        <td style="color:#00ff9d; font-weight:bold;">${changeFormatted}</td>
                         <td>${volFormatted}</td>
-                        <td>${timeFormatted}</td>
+                        <td style="color:#888;">${timeFormatted}</td>
                     `;
                     tableBody.appendChild(row);
                 });
             } else {
-                tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#555;">No signals yet today</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#555;">Scanning for movers > 3%...</td></tr>';
             }
         })
         .catch(err => console.error('Error fetching metrics:', err));

@@ -8,7 +8,8 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #000000; /* Deep Black */
+            background-color: #000000;
+            /* Deep Black */
             color: #e0e0e0;
             display: flex;
             justify-content: center;
@@ -18,10 +19,12 @@
         }
 
         .dashboard-container {
-            background-color: #050505; /* Almost Black */
+            background-color: #050505;
+            /* Almost Black */
             padding: 30px;
             border-radius: 15px;
-            box-shadow: 0 0 25px rgba(57, 255, 20, 0.15); /* Neon Glow */
+            box-shadow: 0 0 25px rgba(57, 255, 20, 0.15);
+            /* Neon Glow */
             width: 450px;
             text-align: center;
             border: 1px solid #1a1a1a;
@@ -59,20 +62,22 @@
             font-weight: bold;
             color: #fff;
         }
-        
+
         .metric-value-small {
-             font-size: 1.1em;
-             color: #ccc;
-             font-family: 'Consolas', monospace;
+            font-size: 1.1em;
+            color: #ccc;
+            font-family: 'Consolas', monospace;
         }
 
         .status-online {
-            color: #39ff14 !important; /* Toxic Neon Green */
+            color: #39ff14 !important;
+            /* Toxic Neon Green */
             text-shadow: 0 0 8px rgba(57, 255, 20, 0.5);
         }
 
         .status-offline {
-            color: #ff003c !important; /* Cyberpunk Red */
+            color: #ff003c !important;
+            /* Cyberpunk Red */
             text-shadow: 0 0 8px rgba(255, 0, 60, 0.5);
         }
 
@@ -100,7 +105,7 @@
             border-bottom: 1px solid #1a1a1a;
             padding-bottom: 8px;
         }
-        
+
         .metric-row:last-child {
             margin-bottom: 0;
             border-bottom: none;
@@ -152,7 +157,8 @@
             margin-top: 10px;
         }
 
-        th, td {
+        th,
+        td {
             text-align: left;
             padding: 8px;
             border-bottom: 1px solid #222;
@@ -164,7 +170,7 @@
             text-transform: uppercase;
             font-size: 0.75em;
         }
-        
+
         tr:last-child td {
             border-bottom: none;
         }
@@ -235,6 +241,7 @@
                 <thead>
                     <tr>
                         <th>Pair</th>
+                        <th>Change %</th>
                         <th>Volume (24h)</th>
                         <th>Time</th>
                     </tr>
